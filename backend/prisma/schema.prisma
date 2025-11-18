@@ -1,0 +1,233 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relacionamentos
+  subjects      Subject[]
+  studySessions StudySession[]
+  revisions     Revision[]
+  studyCycles   StudyCycle[]
+  weeklyPlans   WeeklyPlan[]
+  constancies   Constancy[]
+  examOutlines  ExamOutline[]
+  statistics    Statistics[]
+
+  @@map("users")
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  color       String?  @default("#6366f1")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studySessions StudySession[]
+  revisions   Revision[]
+  cycleItems  CycleItem[]
+  examOutlines ExamOutline[]
+  statistics  Statistics[]
+
+  @@map("subjects")
+}
+
+model StudySession {
+  id          String   @id @default(uuid())
+  userId      String
+  subjectId   String
+  date        DateTime @default(now())
+  duration    Int      // em minutos
+  type        String   // "study", "review", "questions"
+  questions   Int?     @default(0)
+  correctAnswers Int?  @default(0)
+  notes       String?
+  completed   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@map("study_sessions")
+}
+
+model Revision {
+  id          String   @id @default(uuid())
+  userId      String
+  subjectId   String
+  studySessionId String? // sessão original que gerou a revisão
+  scheduledDate DateTime
+  completedDate DateTime?
+  interval    Int      // intervalo em dias (1, 7, 30, etc)
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@map("revisions")
+}
+
+model StudyCycle {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  active      Boolean  @default(true)
+  currentIndex Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cycleItems  CycleItem[]
+
+  @@map("study_cycles")
+}
+
+model CycleItem {
+  id          String   @id @default(uuid())
+  cycleId     String
+  subjectId   String
+  order       Int
+  weight      Int      @default(1) // peso da matéria no ciclo
+  targetTime  Int?     // tempo em minutos
+  targetQuestions Int? // número de questões
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  cycle       StudyCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  subject     Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([cycleId, order])
+  @@map("cycle_items")
+}
+
+model WeeklyPlan {
+  id          String   @id @default(uuid())
+  userId      String
+  weekStart   DateTime
+  weekEnd     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planItems   WeeklyPlanItem[]
+
+  @@map("weekly_plans")
+}
+
+model WeeklyPlanItem {
+  id          String   @id @default(uuid())
+  planId      String
+  subjectId   String?
+  date        DateTime
+  type        String   // "study", "review"
+  scheduled   Boolean  @default(true)
+  completed   Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  plan        WeeklyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("weekly_plan_items")
+}
+
+model Constancy {
+  id          String   @id @default(uuid())
+  userId      String
+  date        DateTime
+  studied     Boolean  @default(false)
+  minutes     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("constancies")
+}
+
+model ExamOutline {
+  id          String   @id @default(uuid())
+  userId      String
+  subjectId   String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  items       OutlineItem[]
+
+  @@map("exam_outlines")
+}
+
+model OutlineItem {
+  id          String   @id @default(uuid())
+  outlineId   String
+  title       String
+  description String?
+  order       Int
+  studied     Boolean  @default(false)
+  reviewed    Boolean  @default(false)
+  studiedAt   DateTime?
+  reviewedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  outline     ExamOutline @relation(fields: [outlineId], references: [id], onDelete: Cascade)
+
+  @@map("outline_items")
+}
+
+model Statistics {
+  id          String   @id @default(uuid())
+  userId      String
+  subjectId   String?
+  date        DateTime
+  totalTime   Int      @default(0) // em minutos
+  totalQuestions Int   @default(0)
+  correctAnswers Int   @default(0)
+  accuracy    Float?   // taxa de acertos (0-1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subjectId, date])
+  @@map("statistics")
+}
+
