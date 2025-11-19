@@ -37,6 +37,18 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
     setLoading(true);
 
     try {
+      if (formData.correctAnswers > formData.questions) {
+        setError('Acertos não podem ser maiores que as questões resolvidas.');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.type === 'questions' && formData.questions <= 0) {
+        setError('Sessões de questões precisam registrar pelo menos 1 questão.');
+        setLoading(false);
+        return;
+      }
+
       await studySessionsApi.create(formData);
       if (onSuccess) onSuccess();
     } catch (err) {
@@ -102,38 +114,50 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
         />
       </div>
 
-      {(formData.type === 'questions' || formData.type === 'study') && (
-        <>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Questões resolvidas
-            </label>
-            <input
-              type="number"
-              min="0"
-              className="input"
-              value={formData.questions}
-              onChange={(e) => setFormData({ ...formData, questions: parseInt(e.target.value) || 0 })}
-            />
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Questões resolvidas
+          </label>
+          <input
+            type="number"
+            required
+            min="0"
+            className="input"
+            value={formData.questions}
+            onChange={(e) => {
+              const value = Math.max(0, parseInt(e.target.value, 10) || 0);
+              setFormData((prev) => ({
+                ...prev,
+                questions: value,
+                correctAnswers: Math.min(prev.correctAnswers, value),
+              }));
+            }}
+          />
+        </div>
 
-          {formData.questions > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Acertos
-              </label>
-              <input
-                type="number"
-                min="0"
-                max={formData.questions}
-                className="input"
-                value={formData.correctAnswers}
-                onChange={(e) => setFormData({ ...formData, correctAnswers: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-          )}
-        </>
-      )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Acertos
+          </label>
+          <input
+            type="number"
+            required
+            min="0"
+            max={formData.questions}
+            className="input"
+            value={formData.correctAnswers}
+            onChange={(e) => {
+              const parsed = parseInt(e.target.value, 10);
+              const value = Math.max(0, Math.min(parsed || 0, formData.questions));
+              setFormData({ ...formData, correctAnswers: value });
+            }}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Use zero se não houver questões corretas.
+          </p>
+        </div>
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -160,4 +184,5 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
     </form>
   );
 }
+
 

@@ -17,3 +17,4 @@ Write-Host "`n🌐 Acesse: http://localhost:5173" -ForegroundColor Yellow
 Write-Host "`nPressione qualquer tecla para sair..."
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 
+

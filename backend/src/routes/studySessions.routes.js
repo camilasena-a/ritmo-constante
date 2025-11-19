@@ -13,11 +13,104 @@ const sessionSchema = z.object({
   date: z.string().datetime().optional(),
   duration: z.number().int().min(1, 'Duração deve ser pelo menos 1 minuto'),
   type: z.enum(['study', 'review', 'questions']),
-  questions: z.number().int().min(0).optional(),
-  correctAnswers: z.number().int().min(0).optional(),
+  questions: z
+    .number({
+      required_error: 'Informe o total de questões resolvidas',
+    })
+    .int()
+    .min(0, 'Questões deve ser pelo menos 0'),
+  correctAnswers: z
+    .number({
+      required_error: 'Informe o total de acertos',
+    })
+    .int()
+    .min(0, 'Acertos deve ser pelo menos 0'),
   notes: z.string().optional(),
   completed: z.boolean().optional(),
+}).superRefine((data, ctx) => {
+  if (data.correctAnswers > data.questions) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Acertos não podem ser maiores que as questões resolvidas',
+      path: ['correctAnswers'],
+    });
+  }
+
+  if (data.type === 'questions' && data.questions === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Sessões de questões precisam ter pelo menos 1 questão',
+      path: ['questions'],
+    });
+  }
 });
+
+const normalizeDate = (date) => {
+  const parsed = new Date(date);
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
+
+const syncStatistics = async (userId, subjectId, date) => {
+  if (!userId || !subjectId || !date) return;
+
+  const statsDate = normalizeDate(date);
+  const aggregates = await prisma.studySession.aggregate({
+    where: {
+      userId,
+      subjectId,
+      date: {
+        gte: startOfDay(statsDate),
+        lte: endOfDay(statsDate),
+      },
+    },
+    _sum: {
+      duration: true,
+      questions: true,
+      correctAnswers: true,
+    },
+    _count: {
+      _all: true,
+    },
+  });
+
+  const totalSessions = aggregates._count?._all || 0;
+  const statsWhere = {
+    userId_subjectId_date: {
+      userId,
+      subjectId,
+      date: statsDate,
+    },
+  };
+
+  if (totalSessions === 0) {
+    await prisma.statistics.delete({ where: statsWhere }).catch(() => {});
+    return;
+  }
+
+  const totalTime = aggregates._sum.duration || 0;
+  const totalQuestions = aggregates._sum.questions || 0;
+  const totalCorrect = aggregates._sum.correctAnswers || 0;
+  const accuracy = totalQuestions > 0 ? totalCorrect / totalQuestions : null;
+
+  await prisma.statistics.upsert({
+    where: statsWhere,
+    update: {
+      totalTime,
+      totalQuestions,
+      correctAnswers: totalCorrect,
+      accuracy,
+    },
+    create: {
+      userId,
+      subjectId,
+      date: statsDate,
+      totalTime,
+      totalQuestions,
+      correctAnswers: totalCorrect,
+      accuracy,
+    },
+  });
+};
 
 // Listar sessões
 router.get('/', async (req, res, next) => {
@@ -103,7 +196,7 @@ router.post('/', async (req, res, next) => {
 
     // Atualizar constância
     const sessionDate = new Date(session.date);
-    const dateOnly = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
+    const dateOnly = normalizeDate(sessionDate);
 
     await prisma.constancy.upsert({
       where: {
@@ -127,53 +220,7 @@ router.post('/', async (req, res, next) => {
     });
 
     // Atualizar estatísticas
-    const accuracy = data.questions && data.correctAnswers
-      ? data.correctAnswers / data.questions
-      : null;
-
-    const existingStat = await prisma.statistics.findUnique({
-      where: {
-        userId_subjectId_date: {
-          userId: req.userId,
-          subjectId: data.subjectId,
-          date: dateOnly,
-        },
-      },
-    });
-
-    if (existingStat) {
-      const newTotalQuestions = existingStat.totalQuestions + (data.questions || 0);
-      const newTotalCorrect = existingStat.correctAnswers + (data.correctAnswers || 0);
-      const newAccuracy = newTotalQuestions > 0 ? newTotalCorrect / newTotalQuestions : existingStat.accuracy;
-
-      await prisma.statistics.update({
-        where: {
-          userId_subjectId_date: {
-            userId: req.userId,
-            subjectId: data.subjectId,
-            date: dateOnly,
-          },
-        },
-        data: {
-          totalTime: { increment: session.duration },
-          totalQuestions: { increment: data.questions || 0 },
-          correctAnswers: { increment: data.correctAnswers || 0 },
-          accuracy: newAccuracy,
-        },
-      });
-    } else {
-      await prisma.statistics.create({
-        data: {
-          userId: req.userId,
-          subjectId: data.subjectId,
-          date: dateOnly,
-          totalTime: session.duration,
-          totalQuestions: data.questions || 0,
-          correctAnswers: data.correctAnswers || 0,
-          accuracy,
-        },
-      });
-    }
+    await syncStatistics(req.userId, data.subjectId, dateOnly);
 
     // Se for uma sessão de estudo, criar revisões futuras
     if (data.type === 'study') {
@@ -220,6 +267,9 @@ router.put('/:id', async (req, res, next) => {
 
     const data = sessionSchema.partial().parse(req.body);
 
+    const originalDate = session.date;
+    const originalSubjectId = session.subjectId;
+
     const updated = await prisma.studySession.update({
       where: { id: req.params.id },
       data: {
@@ -230,6 +280,9 @@ router.put('/:id', async (req, res, next) => {
         subject: true,
       },
     });
+
+    await syncStatistics(req.userId, originalSubjectId, originalDate);
+    await syncStatistics(req.userId, updated.subjectId, updated.date);
 
     res.json(updated);
   } catch (error) {
@@ -257,6 +310,8 @@ router.delete('/:id', async (req, res, next) => {
     await prisma.studySession.delete({
       where: { id: req.params.id },
     });
+
+    await syncStatistics(req.userId, session.subjectId, session.date);
 
     res.status(204).send();
   } catch (error) {

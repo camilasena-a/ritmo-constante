@@ -44,3 +44,4 @@ npm start
 - `src/server.js` - Servidor Express
 - `prisma/schema.prisma` - Schema do banco de dados
 
+
