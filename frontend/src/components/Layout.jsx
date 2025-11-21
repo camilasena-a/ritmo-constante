@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import useThemeStore from '../store/themeStore';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: '📊' },
@@ -13,14 +14,26 @@ const navigation = [
 
 export default function Layout() {
   const location = useLocation();
+  const { isDark, toggleTheme } = useThemeStore();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex flex-col">
+      <div className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-          <div className="flex items-center flex-shrink-0 px-4">
-            <h1 className="text-2xl font-bold text-primary-600">Ritmo Constante</h1>
+          <div className="flex items-center justify-between flex-shrink-0 px-4">
+            <h1 className="text-2xl font-bold text-primary-600 dark:text-primary-400">Ritmo Constante</h1>
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Alternar tema"
+            >
+              {isDark ? (
+                <span className="text-xl">☀️</span>
+              ) : (
+                <span className="text-xl">🌙</span>
+              )}
+            </button>
           </div>
           <nav className="mt-8 flex-1 px-2 space-y-1">
             {navigation.map((item) => {
@@ -31,8 +44,8 @@ export default function Layout() {
                   to={item.href}
                   className={`${
                     isActive
-                      ? 'bg-primary-50 text-primary-600 border-r-2 border-primary-600'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 border-r-2 border-primary-600 dark:border-primary-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   } group flex items-center px-4 py-3 text-sm font-medium rounded-r-lg transition-colors`}
                 >
                   <span className="mr-3 text-lg">{item.icon}</span>
@@ -42,11 +55,11 @@ export default function Layout() {
             })}
           </nav>
         </div>
-        <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+        <div className="flex-shrink-0 flex border-t border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center w-full">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Usuário Padrão</p>
-              <p className="text-xs text-gray-500">Modo sem autenticação</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Usuário Padrão</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Modo sem autenticação</p>
             </div>
           </div>
         </div>

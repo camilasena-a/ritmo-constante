@@ -61,13 +61,13 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Matéria
         </label>
         <select
@@ -86,7 +86,7 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Tipo
         </label>
         <select
@@ -101,7 +101,7 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Duração (minutos)
         </label>
         <input
@@ -116,7 +116,7 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Questões resolvidas
           </label>
           <input
@@ -137,7 +137,7 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Acertos
           </label>
           <input
@@ -153,14 +153,14 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
               setFormData({ ...formData, correctAnswers: value });
             }}
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Use zero se não houver questões corretas.
           </p>
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Observações (opcional)
         </label>
         <textarea

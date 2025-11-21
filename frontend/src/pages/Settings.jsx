@@ -50,14 +50,14 @@ export default function Settings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Configurações</h1>
-        <p className="mt-2 text-gray-600">Gerencie suas preferências</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Configurações</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">Gerencie suas preferências</p>
       </div>
 
       {/* Matérias */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Matérias</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Matérias</h2>
           <button
             onClick={() => setShowSubjectModal(true)}
             className="btn btn-primary"
@@ -69,7 +69,7 @@ export default function Settings() {
           {subjects.map((subject) => (
             <div
               key={subject.id}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
             >
               <div className="flex items-center space-x-3">
                 <div
@@ -77,9 +77,9 @@ export default function Settings() {
                   style={{ backgroundColor: subject.color }}
                 />
                 <div>
-                  <p className="font-medium text-gray-900">{subject.name}</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{subject.name}</p>
                   {subject.description && (
-                    <p className="text-sm text-gray-500">{subject.description}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{subject.description}</p>
                   )}
                 </div>
               </div>
@@ -92,19 +92,19 @@ export default function Settings() {
             </div>
           ))}
           {subjects.length === 0 && (
-            <p className="text-gray-500 text-center py-8">Nenhuma matéria cadastrada</p>
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">Nenhuma matéria cadastrada</p>
           )}
         </div>
       </div>
 
       {/* Modal de criação de matéria */}
       {showSubjectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold mb-4">Nova Matéria</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Nova Matéria</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Nome
                 </label>
                 <input
@@ -116,7 +116,7 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Cor
                 </label>
                 <input
@@ -127,7 +127,7 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Descrição (opcional)
                 </label>
                 <textarea
