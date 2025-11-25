@@ -6,6 +6,7 @@ const navigation = [
   { name: 'Ciclo de Estudos', href: '/study-cycle', icon: '🔄' },
   { name: 'Revisões', href: '/revisions', icon: '📚' },
   { name: 'Quadro Semanal', href: '/weekly-plan', icon: '📅' },
+  { name: 'Calendário', href: '/calendar', icon: '🗓️' },
   { name: 'Estatísticas', href: '/statistics', icon: '📈' },
   { name: 'Constância', href: '/constancy', icon: '🔥' },
   { name: 'Edital', href: '/exam-outline', icon: '📋' },

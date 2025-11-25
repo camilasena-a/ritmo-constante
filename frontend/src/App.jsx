@@ -7,6 +7,7 @@ import WeeklyPlan from './pages/WeeklyPlan';
 import Statistics from './pages/Statistics';
 import Constancy from './pages/Constancy';
 import ExamOutline from './pages/ExamOutline';
+import Calendar from './pages/Calendar';
 import Settings from './pages/Settings';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
         <Route path="statistics" element={<Statistics />} />
         <Route path="constancy" element={<Constancy />} />
         <Route path="exam-outline" element={<ExamOutline />} />
+        <Route path="calendar" element={<Calendar />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>

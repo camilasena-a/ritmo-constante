@@ -27,6 +27,7 @@ model User {
   constancies   Constancy[]
   examOutlines  ExamOutline[]
   statistics    Statistics[]
+  tasks         Task[]
 
   @@map("users")
 }
@@ -229,5 +230,25 @@ model Statistics {
 
   @@unique([userId, subjectId, date])
   @@map("statistics")
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  description String?
+  date        DateTime
+  startTime   String?   // formato HH:mm
+  endTime     String?   // formato HH:mm
+  completed   Boolean  @default(false)
+  color       String?  @default("#6366f1")
+  priority    String?  @default("medium") // "low", "medium", "high"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tasks")
 }
 
