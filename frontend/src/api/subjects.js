@@ -1,8 +1,8 @@
 import api from './client';
 
 export const subjectsApi = {
-  getAll: async () => {
-    const response = await api.get('/subjects');
+  getAll: async (params = {}) => {
+    const response = await api.get('/subjects', { params });
     return response.data;
   },
   

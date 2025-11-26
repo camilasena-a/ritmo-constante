@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { studySessionsApi } from '../api/studySessions';
 import { subjectsApi } from '../api/subjects';
+import { foldersApi } from '../api/folders';
 
 export default function StudySessionForm({ onSuccess, onCancel }) {
   const [subjects, setSubjects] = useState([]);
+  const [folders, setFolders] = useState([]);
+  const [selectedFolderId, setSelectedFolderId] = useState('');
   const [formData, setFormData] = useState({
     subjectId: '',
     duration: 60,
@@ -15,21 +18,48 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadSubjects();
-  }, []);
+  const getFilteredSubjects = () => {
+    if (!selectedFolderId) {
+      return subjects;
+    }
+    if (selectedFolderId === 'null') {
+      return subjects.filter(s => !s.folderId);
+    }
+    return subjects.filter(s => s.folderId === selectedFolderId);
+  };
 
-  const loadSubjects = async () => {
+  const loadData = async () => {
     try {
-      const data = await subjectsApi.getAll();
-      setSubjects(data);
-      if (data.length > 0) {
-        setFormData({ ...formData, subjectId: data[0].id });
+      const [subjectsData, foldersData] = await Promise.all([
+        subjectsApi.getAll(),
+        foldersApi.getAll(),
+      ]);
+      setSubjects(subjectsData);
+      setFolders(foldersData);
+      if (subjectsData.length > 0) {
+        setFormData(prev => ({ ...prev, subjectId: subjectsData[0].id }));
       }
     } catch (error) {
-      console.error('Erro ao carregar matérias:', error);
+      console.error('Erro ao carregar dados:', error);
     }
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    // Resetar matéria selecionada quando a pasta mudar
+    const filteredSubjects = getFilteredSubjects();
+    if (filteredSubjects.length > 0) {
+      const currentSubjectExists = filteredSubjects.find(s => s.id === formData.subjectId);
+      if (!currentSubjectExists) {
+        setFormData(prev => ({ ...prev, subjectId: filteredSubjects[0].id }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, subjectId: '' }));
+    }
+  }, [selectedFolderId, subjects]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,6 +98,25 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Pasta (opcional)
+        </label>
+        <select
+          className="input"
+          value={selectedFolderId}
+          onChange={(e) => setSelectedFolderId(e.target.value)}
+        >
+          <option value="">Todas as pastas</option>
+          {folders.map((folder) => (
+            <option key={folder.id} value={folder.id}>
+              {folder.name}
+            </option>
+          ))}
+          <option value="null">Sem pasta</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Matéria
         </label>
         <select
@@ -75,14 +124,25 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
           className="input"
           value={formData.subjectId}
           onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
+          disabled={getFilteredSubjects().length === 0}
         >
-          <option value="">Selecione uma matéria</option>
-          {subjects.map((subject) => (
+          <option value="">
+            {getFilteredSubjects().length === 0 
+              ? 'Nenhuma matéria disponível nesta pasta' 
+              : 'Selecione uma matéria'}
+          </option>
+          {getFilteredSubjects().map((subject) => (
             <option key={subject.id} value={subject.id}>
               {subject.name}
+              {subject.folder && ` (${subject.folder.name})`}
             </option>
           ))}
         </select>
+        {selectedFolderId && getFilteredSubjects().length === 0 && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Esta pasta não possui matérias cadastradas.
+          </p>
+        )}
       </div>
 
       <div>

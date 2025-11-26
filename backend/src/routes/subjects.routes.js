@@ -9,6 +9,7 @@ const subjectSchema = z.object({
   name: z.string().min(1, 'Nome da matéria é obrigatório'),
   color: z.string().optional(),
   description: z.string().optional(),
+  folderId: z.string().uuid().optional().nullable(),
 });
 
 // Usa usuário padrão (sem necessidade de autenticação)
@@ -17,8 +18,26 @@ router.use(defaultUser);
 // Listar todas as matérias do usuário
 router.get('/', async (req, res, next) => {
   try {
+    const { folderId } = req.query;
+    
+    const where = { userId: req.userId };
+    if (folderId === 'null' || folderId === '') {
+      where.folderId = null;
+    } else if (folderId) {
+      where.folderId = folderId;
+    }
+
     const subjects = await prisma.subject.findMany({
-      where: { userId: req.userId },
+      where,
+      include: {
+        folder: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -37,6 +56,13 @@ router.get('/:id', async (req, res, next) => {
         userId: req.userId,
       },
       include: {
+        folder: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
         _count: {
           select: {
             studySessions: true,
@@ -61,10 +87,34 @@ router.post('/', async (req, res, next) => {
   try {
     const data = subjectSchema.parse(req.body);
 
+    // Validar se folderId existe e pertence ao usuário (se fornecido)
+    if (data.folderId) {
+      const folder = await prisma.folder.findFirst({
+        where: {
+          id: data.folderId,
+          userId: req.userId,
+        },
+      });
+
+      if (!folder) {
+        return res.status(404).json({ error: 'Pasta não encontrada' });
+      }
+    }
+
     const subject = await prisma.subject.create({
       data: {
         ...data,
+        folderId: data.folderId || null,
         userId: req.userId,
+      },
+      include: {
+        folder: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
       },
     });
 
@@ -93,9 +143,36 @@ router.put('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Matéria não encontrada' });
     }
 
+    // Validar se folderId existe e pertence ao usuário (se fornecido)
+    if (data.folderId !== undefined) {
+      if (data.folderId === null || data.folderId === '') {
+        data.folderId = null;
+      } else {
+        const folder = await prisma.folder.findFirst({
+          where: {
+            id: data.folderId,
+            userId: req.userId,
+          },
+        });
+
+        if (!folder) {
+          return res.status(404).json({ error: 'Pasta não encontrada' });
+        }
+      }
+    }
+
     const updated = await prisma.subject.update({
       where: { id: req.params.id },
       data,
+      include: {
+        folder: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+      },
     });
 
     res.json(updated);

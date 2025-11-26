@@ -28,13 +28,31 @@ model User {
   examOutlines  ExamOutline[]
   statistics    Statistics[]
   tasks         Task[]
+  folders       Folder[]
 
   @@map("users")
+}
+
+model Folder {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  color       String?  @default("#6366f1")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects    Subject[]
+
+  @@map("folders")
 }
 
 model Subject {
   id          String   @id @default(uuid())
   userId      String
+  folderId    String?  // Relacionamento opcional com Folder
   name        String
   color       String?  @default("#6366f1")
   description String?
@@ -43,6 +61,7 @@ model Subject {
 
   // Relacionamentos
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder      Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
   studySessions StudySession[]
   revisions   Revision[]
   cycleItems  CycleItem[]

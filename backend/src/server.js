@@ -13,6 +13,7 @@ import statisticsRoutes from './routes/statistics.routes.js';
 import examOutlineRoutes from './routes/examOutline.routes.js';
 import weeklyPlanRoutes from './routes/weeklyPlan.routes.js';
 import tasksRoutes from './routes/tasks.routes.js';
+import foldersRoutes from './routes/folders.routes.js';
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use('/api/statistics', statisticsRoutes);
 app.use('/api/exam-outlines', examOutlineRoutes);
 app.use('/api/weekly-plans', weeklyPlanRoutes);
 app.use('/api/tasks', tasksRoutes);
+app.use('/api/folders', foldersRoutes);
 
 // Error handler
 app.use(errorHandler);
