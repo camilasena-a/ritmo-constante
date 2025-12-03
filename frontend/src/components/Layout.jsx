@@ -1,6 +1,7 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import useThemeStore from '../store/themeStore';
+import { useAuthStore } from '../store/authStore';
 import { foldersApi } from '../api/folders';
 import { subjectsApi } from '../api/subjects';
 
@@ -21,10 +22,29 @@ const userMenuItems = [
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isDark, toggleTheme } = useThemeStore();
+  const { user, logout } = useAuthStore();
   const [folders, setFolders] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+    setShowUserMenu(false);
+  };
+
+  const getUserInitials = () => {
+    if (user?.name) {
+      const names = user.name.split(' ');
+      if (names.length >= 2) {
+        return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+      }
+      return user.name.substring(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
 
   useEffect(() => {
     loadFolders();
@@ -187,11 +207,15 @@ export default function Layout() {
             >
               <div className="flex items-center space-x-3 flex-1 min-w-0">
                 <div className="w-8 h-8 rounded-full bg-primary-600 dark:bg-primary-500 flex items-center justify-center text-white text-sm font-medium">
-                  UP
+                  {getUserInitials()}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">Usuário Padrão</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Modo sem autenticação</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                    {user?.name || 'Usuário'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {user?.email || ''}
+                  </p>
                 </div>
               </div>
               <svg
@@ -230,6 +254,18 @@ export default function Layout() {
                     </Link>
                   );
                 })}
+                <div className="border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  >
+                    <span className="mr-3 text-lg">🚪</span>
+                    Sair
+                  </button>
+                </div>
               </div>
             )}
           </div>
