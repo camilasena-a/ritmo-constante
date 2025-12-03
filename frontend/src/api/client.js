@@ -7,19 +7,22 @@ const api = axios.create({
   },
 });
 
-// Interceptor para adicionar token de autenticação nas requisições
+// Interceptor para adicionar token JWT no header Authorization
 api.interceptors.request.use(
   (config) => {
-    const authStorage = localStorage.getItem('auth-storage');
-    if (authStorage) {
-      try {
-        const { token } = JSON.parse(authStorage);
+    try {
+      const authStorage = localStorage.getItem('auth-storage');
+      if (authStorage) {
+        const parsed = JSON.parse(authStorage);
+        // Suporta tanto o formato direto quanto o formato do zustand persist
+        const token = parsed?.token || parsed?.state?.token;
+        
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-      } catch (error) {
-        console.error('Erro ao obter token:', error);
       }
+    } catch (error) {
+      console.error('Erro ao obter token do localStorage:', error);
     }
     return config;
   },

@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../config/database.js';
-import { defaultUser } from '../middleware/defaultUser.js';
+import { authenticate } from '../middleware/auth.js';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -12,8 +12,8 @@ const subjectSchema = z.object({
   folderId: z.string().uuid().optional().nullable(),
 });
 
-// Usa usuário padrão (sem necessidade de autenticação)
-router.use(defaultUser);
+// Requer autenticação JWT
+router.use(authenticate);
 
 // Listar todas as matérias do usuário
 router.get('/', async (req, res, next) => {
