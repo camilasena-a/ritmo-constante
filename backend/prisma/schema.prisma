@@ -29,6 +29,7 @@ model User {
   statistics    Statistics[]
   tasks         Task[]
   folders       Folder[]
+  refreshTokens RefreshToken[]
 
   @@map("users")
 }
@@ -269,5 +270,21 @@ model Task {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("tasks")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+
+  // Relacionamentos
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("refresh_tokens")
 }
 

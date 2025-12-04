@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../config/database.js';
-import { hashPassword, comparePassword, generateToken } from '../config/auth.js';
+import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../config/auth.js';
 import { authenticate } from '../middleware/auth.js';
 import { z } from 'zod';
 
@@ -46,11 +46,25 @@ router.post('/register', async (req, res, next) => {
       },
     });
 
-    const token = generateToken(user.id);
+    const accessToken = generateAccessToken(user.id);
+    const refreshToken = generateRefreshToken();
+
+    // Salvar refresh token no banco
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 dias
+
+    await prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        token: refreshToken,
+        expiresAt,
+      },
+    });
 
     res.status(201).json({
       user,
-      token,
+      token: accessToken,
+      refreshToken,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -79,7 +93,31 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ error: 'Email ou senha inválidos' });
     }
 
-    const token = generateToken(user.id);
+    const accessToken = generateAccessToken(user.id);
+    const refreshToken = generateRefreshToken();
+
+    // Revogar refresh tokens antigos do usuário
+    await prisma.refreshToken.updateMany({
+      where: {
+        userId: user.id,
+        revoked: false,
+      },
+      data: {
+        revoked: true,
+      },
+    });
+
+    // Salvar novo refresh token no banco
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 dias
+
+    await prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        token: refreshToken,
+        expiresAt,
+      },
+    });
 
     res.json({
       user: {
@@ -88,7 +126,8 @@ router.post('/login', async (req, res, next) => {
         email: user.email,
         createdAt: user.createdAt,
       },
-      token,
+      token: accessToken,
+      refreshToken,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -158,6 +197,72 @@ router.put('/me', authenticate, async (req, res, next) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Dados inválidos', details: error.errors });
     }
+    next(error);
+  }
+});
+
+// Renovar tokens (refresh token)
+router.post('/refresh', async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'Refresh token não fornecido' });
+    }
+
+    const tokenData = await verifyRefreshToken(refreshToken, prisma);
+
+    if (!tokenData) {
+      return res.status(401).json({ error: 'Refresh token inválido ou expirado' });
+    }
+
+    // Gerar novos tokens
+    const newAccessToken = generateAccessToken(tokenData.userId);
+    const newRefreshToken = generateRefreshToken();
+
+    // Revogar o refresh token antigo
+    await prisma.refreshToken.update({
+      where: { id: tokenData.id },
+      data: { revoked: true },
+    });
+
+    // Criar novo refresh token
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 dias
+
+    await prisma.refreshToken.create({
+      data: {
+        userId: tokenData.userId,
+        token: newRefreshToken,
+        expiresAt,
+      },
+    });
+
+    res.json({
+      token: newAccessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Logout (revogar refresh token)
+router.post('/logout', authenticate, async (req, res, next) => {
+  try {
+    // Revogar todos os refresh tokens do usuário
+    await prisma.refreshToken.updateMany({
+      where: {
+        userId: req.userId,
+        revoked: false,
+      },
+      data: {
+        revoked: true,
+      },
+    });
+
+    res.json({ message: 'Logout realizado com sucesso' });
+  } catch (error) {
     next(error);
   }
 });

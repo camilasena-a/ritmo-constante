@@ -9,7 +9,7 @@ const loadFromStorage = () => {
   } catch (error) {
     console.error('Erro ao carregar do storage:', error);
   }
-  return { user: null, token: null, isAuthenticated: false };
+  return { user: null, token: null, refreshToken: null, isAuthenticated: false };
 };
 
 const saveToStorage = (state) => {
@@ -25,15 +25,22 @@ const initialState = loadFromStorage();
 export const useAuthStore = create((set) => ({
   ...initialState,
   
-  setAuth: (user, token) => {
-    const newState = { user, token, isAuthenticated: !!token };
+  setAuth: (user, token, refreshToken) => {
+    const newState = { user, token, refreshToken, isAuthenticated: !!token };
+    saveToStorage(newState);
+    set(newState);
+  },
+  
+  setTokens: (token, refreshToken) => {
+    const currentState = loadFromStorage();
+    const newState = { ...currentState, token, refreshToken };
     saveToStorage(newState);
     set(newState);
   },
   
   logout: () => {
     localStorage.removeItem('auth-storage');
-    set({ user: null, token: null, isAuthenticated: false });
+    set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
   },
 }));
 

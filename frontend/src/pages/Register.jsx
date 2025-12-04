@@ -18,8 +18,8 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const { user, token } = await authApi.register(formData);
-      setAuth(user, token);
+      const { user, token, refreshToken } = await authApi.register(formData);
+      setAuth(user, token, refreshToken);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Erro ao criar conta');

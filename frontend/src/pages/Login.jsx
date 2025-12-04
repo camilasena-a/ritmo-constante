@@ -18,8 +18,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const { user, token } = await authApi.login(formData);
-      setAuth(user, token);
+      const { user, token, refreshToken } = await authApi.login(formData);
+      setAuth(user, token, refreshToken);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Erro ao fazer login');
