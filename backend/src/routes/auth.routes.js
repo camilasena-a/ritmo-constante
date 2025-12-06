@@ -2,7 +2,9 @@ import express from 'express';
 import prisma from '../config/database.js';
 import { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../config/auth.js';
 import { authenticate } from '../middleware/auth.js';
+import { sendPasswordResetEmail } from '../services/email.js';
 import { z } from 'zod';
+import crypto from 'crypto';
 
 const router = express.Router();
 
@@ -263,6 +265,133 @@ router.post('/logout', authenticate, async (req, res, next) => {
 
     res.json({ message: 'Logout realizado com sucesso' });
   } catch (error) {
+    next(error);
+  }
+});
+
+// Solicitar recuperação de senha
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const forgotPasswordSchema = z.object({
+      email: z.string().email('Email inválido'),
+    });
+
+    const { email } = forgotPasswordSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    // Por segurança, sempre retorna sucesso mesmo se o email não existir
+    // Isso previne enumeração de emails
+    if (!user) {
+      return res.json({ 
+        message: 'Se o email estiver cadastrado, você receberá um link de recuperação de senha.' 
+      });
+    }
+
+    // Gerar token de reset
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1); // Expira em 1 hora
+
+    // Invalidar tokens anteriores do usuário
+    await prisma.passwordResetToken.updateMany({
+      where: {
+        userId: user.id,
+        used: false,
+      },
+      data: {
+        used: true,
+      },
+    });
+
+    // Criar novo token de reset
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token: resetToken,
+        expiresAt,
+      },
+    });
+
+    // Enviar email
+    try {
+      await sendPasswordResetEmail(user.email, resetToken, user.name);
+    } catch (emailError) {
+      console.error('Erro ao enviar email:', emailError);
+      // Não falha a requisição se o email não for enviado
+      // Em produção, você pode querer tratar isso de forma diferente
+    }
+
+    res.json({ 
+      message: 'Se o email estiver cadastrado, você receberá um link de recuperação de senha.' 
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Dados inválidos', details: error.errors });
+    }
+    next(error);
+  }
+});
+
+// Redefinir senha com token
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const resetPasswordSchema = z.object({
+      token: z.string().min(1, 'Token é obrigatório'),
+      password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+    });
+
+    const { token, password } = resetPasswordSchema.parse(req.body);
+
+    // Buscar token válido
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!resetToken) {
+      return res.status(400).json({ error: 'Token inválido ou expirado' });
+    }
+
+    if (resetToken.used) {
+      return res.status(400).json({ error: 'Token já foi utilizado' });
+    }
+
+    if (resetToken.expiresAt < new Date()) {
+      return res.status(400).json({ error: 'Token expirado' });
+    }
+
+    // Atualizar senha do usuário
+    const hashedPassword = await hashPassword(password);
+    await prisma.user.update({
+      where: { id: resetToken.userId },
+      data: { password: hashedPassword },
+    });
+
+    // Marcar token como usado
+    await prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { used: true },
+    });
+
+    // Revogar todos os refresh tokens do usuário (forçar logout de todos os dispositivos)
+    await prisma.refreshToken.updateMany({
+      where: {
+        userId: resetToken.userId,
+        revoked: false,
+      },
+      data: {
+        revoked: true,
+      },
+    });
+
+    res.json({ message: 'Senha redefinida com sucesso' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Dados inválidos', details: error.errors });
+    }
     next(error);
   }
 });
