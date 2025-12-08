@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
+import GlobalLoading from './components/GlobalLoading';
 import Dashboard from './pages/Dashboard';
 import StudyCycle from './pages/StudyCycle';
 import Revisions from './pages/Revisions';
@@ -18,7 +19,9 @@ import ResetPassword from './pages/ResetPassword';
 
 function App() {
   return (
-    <Routes>
+    <>
+      <GlobalLoading />
+      <Routes>
       {/* Rotas públicas (login e register) */}
       <Route
         path="/login"
@@ -77,6 +80,7 @@ function App() {
       {/* Redireciona qualquer rota desconhecida para dashboard */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    </>
   );
 }
 

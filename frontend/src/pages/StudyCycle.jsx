@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { studyCyclesApi } from '../api/studyCycles';
 import { subjectsApi } from '../api/subjects';
-import Loading from '../components/Loading';
+import { Skeleton, SkeletonList } from '../components/Skeleton';
 
 export default function StudyCycle() {
   const [cycles, setCycles] = useState([]);
@@ -62,14 +62,12 @@ export default function StudyCycle() {
     }
   };
 
-  if (loading) return <Loading />;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Ciclo de Estudos</h1>
-          <p className="mt-2 text-gray-600">Gerencie seus ciclos de estudos personalizados</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Ciclo de Estudos</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">Gerencie seus ciclos de estudos personalizados</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -79,7 +77,13 @@ export default function StudyCycle() {
         </button>
       </div>
 
-      {activeCycle ? (
+      {loading ? (
+        <div className="card">
+          <Skeleton height="2rem" width="40%" className="mb-4" />
+          <Skeleton height="1rem" className="mb-6" />
+          <SkeletonList items={5} />
+        </div>
+      ) : activeCycle ? (
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <div>

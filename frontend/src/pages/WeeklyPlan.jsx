@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { weeklyPlansApi } from '../api/weeklyPlans';
 import { subjectsApi } from '../api/subjects';
-import Loading from '../components/Loading';
+import { SkeletonCalendar } from '../components/Skeleton';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -46,14 +46,12 @@ export default function WeeklyPlan() {
     });
   };
 
-  if (loading) return <Loading />;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quadro Semanal</h1>
-          <p className="mt-2 text-gray-600">Planejamento semanal de estudos</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Quadro Semanal</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">Planejamento semanal de estudos</p>
         </div>
         <div className="flex items-center space-x-2">
           <button
@@ -77,7 +75,10 @@ export default function WeeklyPlan() {
         </div>
       </div>
 
-      <div className="card">
+      {loading ? (
+        <SkeletonCalendar />
+      ) : (
+        <div className="card">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-gray-900">
             {format(weekStart, "dd 'de' MMMM", { locale: ptBR })} - {format(weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
@@ -134,6 +135,7 @@ export default function WeeklyPlan() {
           })}
         </div>
       </div>
+      )}
     </div>
   );
 }

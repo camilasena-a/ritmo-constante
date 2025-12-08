@@ -1,4 +1,5 @@
 import axios from 'axios';
+import useLoadingStore from '../store/loadingStore';
 
 const api = axios.create({
   baseURL: '/api',
@@ -76,6 +77,11 @@ const refreshTokenIfNeeded = async () => {
 // Interceptor para adicionar token JWT no header Authorization e renovar se necessário
 api.interceptors.request.use(
   async (config) => {
+    // Ignorar loading para refresh token para evitar loops
+    if (!config.url?.includes('/auth/refresh')) {
+      useLoadingStore.getState().startLoading();
+    }
+
     try {
       const authStorage = localStorage.getItem('auth-storage');
       if (authStorage) {
@@ -121,15 +127,30 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    // Parar loading em caso de erro na requisição
+    if (!error.config?.url?.includes('/auth/refresh')) {
+      useLoadingStore.getState().stopLoading();
+    }
     return Promise.reject(error);
   }
 );
 
 // Interceptor para tratar erros e tentar renovar token em caso de 401
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Parar loading em caso de sucesso
+    if (!response.config?.url?.includes('/auth/refresh')) {
+      useLoadingStore.getState().stopLoading();
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
+
+    // Parar loading em caso de erro (exceto refresh token)
+    if (!originalRequest?.url?.includes('/auth/refresh')) {
+      useLoadingStore.getState().stopLoading();
+    }
 
     // Se for erro 401 e não for uma tentativa de refresh
     if (error.response?.status === 401 && !originalRequest._retry) {

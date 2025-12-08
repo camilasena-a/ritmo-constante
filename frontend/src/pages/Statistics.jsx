@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { statisticsApi } from '../api/statistics';
-import Loading from '../components/Loading';
+import { Skeleton, SkeletonGrid, SkeletonChart, SkeletonTable } from '../components/Skeleton';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -61,8 +61,6 @@ export default function Statistics() {
     return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
   };
 
-  if (loading) return <Loading />;
-
   const timelineChartData = {
     labels: timeline.map((item) => new Date(item.date).toLocaleDateString('pt-BR')),
     datasets: [
@@ -114,8 +112,8 @@ export default function Statistics() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Estatísticas</h1>
-          <p className="mt-2 text-gray-600">Acompanhe seu desempenho</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Estatísticas</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">Acompanhe seu desempenho</p>
         </div>
         <select
           value={period}
@@ -128,8 +126,26 @@ export default function Statistics() {
         </select>
       </div>
 
-      {/* Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {loading ? (
+        <>
+          {/* Resumo - Skeleton */}
+          <SkeletonGrid items={4} columns={4} />
+
+          {/* Gráficos - Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SkeletonChart />
+            <SkeletonChart />
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+
+          {/* Tabela - Skeleton */}
+          <SkeletonTable rows={5} columns={5} />
+        </>
+      ) : (
+        <>
+          {/* Resumo */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="card">
           <p className="text-sm text-gray-600">Tempo total</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">
@@ -249,6 +265,8 @@ export default function Statistics() {
           </table>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

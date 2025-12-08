@@ -11,12 +11,14 @@ const getInitialTheme = () => {
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
 };
 
-// Aplicar tema inicial
+// Aplicar tema inicial apenas no cliente
 const initialTheme = getInitialTheme();
-if (initialTheme) {
-  document.documentElement.classList.add('dark');
-} else {
-  document.documentElement.classList.remove('dark');
+if (typeof window !== 'undefined') {
+  if (initialTheme) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
 }
 
 const useThemeStore = create((set) => ({
