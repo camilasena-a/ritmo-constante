@@ -22,3 +22,4 @@ export default function GlobalLoading() {
   return <Loading fullScreen={true} size="lg" />;
 }
 
+

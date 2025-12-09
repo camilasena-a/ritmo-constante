@@ -1,13 +1,12 @@
 import express from 'express';
 import prisma from '../config/database.js';
-import { authenticate } from '../middleware/auth.js';
+import { defaultUser } from '../middleware/defaultUser.js';
 import { z } from 'zod';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
 const router = express.Router();
 
-// Requer autenticação JWT
-router.use(authenticate);
+router.use(defaultUser);
 
 const sessionSchema = z.object({
   subjectId: z.string().uuid(),
