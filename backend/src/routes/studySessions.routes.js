@@ -245,7 +245,8 @@ router.post('/', async (req, res, next) => {
     res.status(201).json(session);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Dados inválidos', details: error.errors });
+      // O errorHandler já trata erros Zod de forma melhor, então apenas passar adiante
+      return next(error);
     }
     next(error);
   }
@@ -287,7 +288,8 @@ router.put('/:id', async (req, res, next) => {
     res.json(updated);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Dados inválidos', details: error.errors });
+      // O errorHandler já trata erros Zod de forma melhor, então apenas passar adiante
+      return next(error);
     }
     next(error);
   }

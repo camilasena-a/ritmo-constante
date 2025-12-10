@@ -1,5 +1,6 @@
 import axios from 'axios';
 import useLoadingStore from '../store/loadingStore';
+import useToastStore from '../store/toastStore';
 
 const api = axios.create({
   baseURL: '/api',
@@ -209,6 +210,16 @@ api.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
+    }
+
+    // Mostrar toast de erro para o usuário
+    const errorMessage = error.response?.data?.error || 
+                         error.message || 
+                         'Ocorreu um erro. Tente novamente.';
+    
+    // Não mostrar toast para erros 401 (já tratados acima) ou erros de refresh token
+    if (error.response?.status !== 401 && !originalRequest?.url?.includes('/auth/refresh')) {
+      useToastStore.getState().error(errorMessage);
     }
 
     // Log de erros, mas não redireciona para login

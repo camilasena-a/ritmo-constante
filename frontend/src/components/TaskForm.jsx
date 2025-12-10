@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { tasksApi } from '../api/tasks';
 import { format } from 'date-fns';
+import useToastStore from '../store/toastStore';
 
 export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (task) {
@@ -32,31 +34,75 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
     }
   }, [task]);
 
+  const validateField = (field, value) => {
+    const errors = { ...fieldErrors };
+    
+    switch (field) {
+      case 'title':
+        if (!value || !value.trim()) {
+          errors.title = 'O título da tarefa é obrigatório';
+        } else {
+          delete errors.title;
+        }
+        break;
+      case 'startTime':
+      case 'endTime':
+        if (formData.startTime && formData.endTime) {
+          const [startHour, startMin] = formData.startTime.split(':').map(Number);
+          const [endHour, endMin] = formData.endTime.split(':').map(Number);
+          const startMinutes = startHour * 60 + startMin;
+          const endMinutes = endHour * 60 + endMin;
+          
+          if (endMinutes <= startMinutes) {
+            errors.endTime = 'O horário de término deve ser posterior ao horário de início';
+          } else {
+            delete errors.endTime;
+          }
+        } else {
+          delete errors.endTime;
+        }
+        break;
+      default:
+        break;
+    }
+    
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!formData.title || !formData.title.trim()) {
+      errors.title = 'O título da tarefa é obrigatório';
+    }
+    
+    if (formData.startTime && formData.endTime) {
+      const [startHour, startMin] = formData.startTime.split(':').map(Number);
+      const [endHour, endMin] = formData.endTime.split(':').map(Number);
+      const startMinutes = startHour * 60 + startMin;
+      const endMinutes = endHour * 60 + endMin;
+      
+      if (endMinutes <= startMinutes) {
+        errors.endTime = 'O horário de término deve ser posterior ao horário de início';
+      }
+    }
+    
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
-      if (!formData.title.trim()) {
-        setError('O título da tarefa é obrigatório.');
-        setLoading(false);
-        return;
-      }
-
-      if (formData.startTime && formData.endTime) {
-        const [startHour, startMin] = formData.startTime.split(':').map(Number);
-        const [endHour, endMin] = formData.endTime.split(':').map(Number);
-        const startMinutes = startHour * 60 + startMin;
-        const endMinutes = endHour * 60 + endMin;
-        
-        if (endMinutes <= startMinutes) {
-          setError('O horário de término deve ser posterior ao horário de início.');
-          setLoading(false);
-          return;
-        }
-      }
-
       const taskData = {
         ...formData,
         date: new Date(formData.date).toISOString(),
@@ -64,13 +110,27 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
 
       if (task) {
         await tasksApi.update(task.id, taskData);
+        useToastStore.getState().success('Tarefa atualizada com sucesso!');
       } else {
         await tasksApi.create(taskData);
+        useToastStore.getState().success('Tarefa criada com sucesso!');
       }
       
       if (onSuccess) onSuccess();
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao salvar tarefa');
+      const errorMessage = err.response?.data?.error || 'Erro ao salvar tarefa';
+      setError(errorMessage);
+      
+      // Se houver erros de campo específicos do backend
+      if (err.response?.data?.details && Array.isArray(err.response.data.details)) {
+        const backendErrors = {};
+        err.response.data.details.forEach((detail) => {
+          if (detail.field) {
+            backendErrors[detail.field] = detail.message;
+          }
+        });
+        setFieldErrors({ ...fieldErrors, ...backendErrors });
+      }
     } finally {
       setLoading(false);
     }
@@ -102,11 +162,18 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
         <input
           type="text"
           required
-          className="input"
+          className={`input ${fieldErrors.title ? 'border-red-500 dark:border-red-500' : ''}`}
           value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          onChange={(e) => {
+            setFormData({ ...formData, title: e.target.value });
+            validateField('title', e.target.value);
+          }}
+          onBlur={() => validateField('title', formData.title)}
           placeholder="Ex: Revisar matemática"
         />
+        {fieldErrors.title && (
+          <p className="text-xs text-red-600 dark:text-red-400 mt-1">{fieldErrors.title}</p>
+        )}
       </div>
 
       <div>
@@ -142,9 +209,13 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
           </label>
           <input
             type="time"
-            className="input"
+            className={`input ${fieldErrors.startTime ? 'border-red-500 dark:border-red-500' : ''}`}
             value={formData.startTime}
-            onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, startTime: e.target.value });
+              validateField('startTime', e.target.value);
+            }}
+            onBlur={() => validateField('startTime', formData.startTime)}
           />
         </div>
 
@@ -154,10 +225,17 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
           </label>
           <input
             type="time"
-            className="input"
+            className={`input ${fieldErrors.endTime ? 'border-red-500 dark:border-red-500' : ''}`}
             value={formData.endTime}
-            onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, endTime: e.target.value });
+              validateField('endTime', e.target.value);
+            }}
+            onBlur={() => validateField('endTime', formData.endTime)}
           />
+          {fieldErrors.endTime && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{fieldErrors.endTime}</p>
+          )}
         </div>
       </div>
 
@@ -228,6 +306,7 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
     </form>
   );
 }
+
 
 
 

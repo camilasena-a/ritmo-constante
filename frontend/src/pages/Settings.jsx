@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { subjectsApi } from '../api/subjects';
 import { foldersApi } from '../api/folders';
 import Loading from '../components/Loading';
+import useToastStore from '../store/toastStore';
 
 export default function Settings() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,8 +50,10 @@ export default function Settings() {
     try {
       if (editingSubject) {
         await subjectsApi.update(editingSubject.id, subjectForm);
+        useToastStore.getState().success('Matéria atualizada com sucesso!');
       } else {
         await subjectsApi.create(subjectForm);
+        useToastStore.getState().success('Matéria criada com sucesso!');
       }
       await loadData();
       setShowSubjectModal(false);
@@ -60,7 +63,7 @@ export default function Settings() {
       window.dispatchEvent(new Event('subjectsUpdated'));
     } catch (error) {
       console.error('Erro ao salvar matéria:', error);
-      alert(error.response?.data?.error || 'Erro ao salvar matéria');
+      // O toast de erro já será exibido pelo client.js
     }
   };
 
@@ -68,8 +71,10 @@ export default function Settings() {
     try {
       if (editingFolder) {
         await foldersApi.update(editingFolder.id, folderForm);
+        useToastStore.getState().success('Pasta atualizada com sucesso!');
       } else {
         await foldersApi.create(folderForm);
+        useToastStore.getState().success('Pasta criada com sucesso!');
       }
       await loadData();
       setShowFolderModal(false);
@@ -79,7 +84,7 @@ export default function Settings() {
       window.dispatchEvent(new Event('foldersUpdated'));
     } catch (error) {
       console.error('Erro ao salvar pasta:', error);
-      alert(error.response?.data?.error || 'Erro ao salvar pasta');
+      // O toast de erro já será exibido pelo client.js
     }
   };
 
@@ -108,11 +113,13 @@ export default function Settings() {
     if (window.confirm('Tem certeza que deseja deletar esta matéria?')) {
       try {
         await subjectsApi.delete(id);
+        useToastStore.getState().success('Matéria deletada com sucesso!');
         await loadData();
         // Disparar evento para atualizar o Layout
         window.dispatchEvent(new Event('subjectsUpdated'));
       } catch (error) {
         console.error('Erro ao deletar matéria:', error);
+        // O toast de erro já será exibido pelo client.js
       }
     }
   };
@@ -121,12 +128,13 @@ export default function Settings() {
     if (window.confirm('Tem certeza que deseja deletar esta pasta? As matérias dentro dela não serão deletadas, mas ficarão sem pasta.')) {
       try {
         await foldersApi.delete(id);
+        useToastStore.getState().success('Pasta deletada com sucesso!');
         await loadData();
         // Disparar evento para atualizar o Layout
         window.dispatchEvent(new Event('foldersUpdated'));
       } catch (error) {
         console.error('Erro ao deletar pasta:', error);
-        alert(error.response?.data?.error || 'Erro ao deletar pasta');
+        // O toast de erro já será exibido pelo client.js
       }
     }
   };
@@ -134,11 +142,13 @@ export default function Settings() {
   const handleMoveSubject = async (subjectId, newFolderId) => {
     try {
       await subjectsApi.update(subjectId, { folderId: newFolderId || null });
+      useToastStore.getState().success('Matéria movida com sucesso!');
       await loadData();
       // Disparar evento para atualizar o Layout
       window.dispatchEvent(new Event('subjectsUpdated'));
     } catch (error) {
       console.error('Erro ao mover matéria:', error);
+      // O toast de erro já será exibido pelo client.js
     }
   };
 
