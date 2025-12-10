@@ -83,29 +83,48 @@ npm run prisma:migrate
 
 ### Desenvolvimento
 
-Para executar backend e frontend simultaneamente:
+#### Opção 1: Scripts PowerShell (Recomendado para Windows)
 
+**Iniciar tudo em terminais separados (melhor para ver logs):**
+```powershell
+.\start-dev.ps1
+```
+Isso abrirá dois terminais separados:
+- Um para o backend (porta 3001)
+- Um para o frontend (porta 5173)
+
+**Iniciar apenas o backend (útil para depuração):**
+```powershell
+.\start-backend-only.ps1
+```
+
+#### Opção 2: NPM Scripts
+
+**Executar tudo junto (logs misturados):**
 ```bash
 # Na raiz do projeto
 npm run dev
 ```
 
-Ou execute separadamente:
+**Executar separadamente:**
 
-**Backend:**
+**Terminal 1 - Backend:**
 ```bash
 cd backend
 npm run dev
 ```
 
-**Frontend:**
+**Terminal 2 - Frontend:**
 ```bash
 cd frontend
 npm run dev
 ```
 
-O backend estará disponível em `http://localhost:3001`
-O frontend estará disponível em `http://localhost:5173`
+#### URLs dos Serviços
+
+- **Backend:** `http://localhost:3001`
+- **Frontend:** `http://localhost:5173`
+- **Health Check:** `http://localhost:3001/health`
 
 ### Produção
 

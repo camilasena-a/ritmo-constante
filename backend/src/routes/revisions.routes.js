@@ -11,6 +11,10 @@ router.use(authenticate);
 // Listar revisões pendentes
 router.get('/pending', async (req, res, next) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Usuário não autenticado' });
+    }
+
     const { startDate, endDate } = req.query;
 
     const where = {

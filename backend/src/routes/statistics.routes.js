@@ -11,8 +11,12 @@ router.use(authenticate);
 // Estatísticas gerais
 router.get('/overview', async (req, res, next) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Usuário não autenticado' });
+    }
+
     const { period = '30' } = req.query;
-    const days = parseInt(period);
+    const days = parseInt(period) || 30;
     const startDate = subDays(new Date(), days);
     const endDate = new Date();
 
@@ -121,8 +125,12 @@ router.get('/overview', async (req, res, next) => {
 // Estatísticas por matéria
 router.get('/by-subject', async (req, res, next) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Usuário não autenticado' });
+    }
+
     const { period = '30' } = req.query;
-    const days = parseInt(period);
+    const days = parseInt(period) || 30;
     const startDate = subDays(new Date(), days);
     const endDate = new Date();
 
@@ -172,6 +180,10 @@ router.get('/by-subject', async (req, res, next) => {
 // Constância diária (para gráfico tipo GitHub contributions)
 router.get('/constancy', async (req, res, next) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Usuário não autenticado' });
+    }
+
     const { year } = req.query;
     const targetYear = year ? parseInt(year) : new Date().getFullYear();
 
@@ -204,8 +216,12 @@ router.get('/constancy', async (req, res, next) => {
 // Evolução temporal (para gráfico de linhas)
 router.get('/timeline', async (req, res, next) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Usuário não autenticado' });
+    }
+
     const { period = '30', groupBy = 'day' } = req.query;
-    const days = parseInt(period);
+    const days = parseInt(period) || 30;
     const startDate = subDays(new Date(), days);
     const endDate = new Date();
 

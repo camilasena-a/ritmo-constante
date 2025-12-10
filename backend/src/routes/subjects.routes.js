@@ -17,13 +17,22 @@ router.use(defaultUser);
 // Listar todas as matérias do usuário
 router.get('/', async (req, res, next) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Usuário não autenticado' });
+    }
+
+    console.log('Buscando matérias para userId:', req.userId);
+
     const subjects = await prisma.subject.findMany({
       where: { userId: req.userId },
       orderBy: { createdAt: 'desc' },
     });
 
+    console.log('Matérias encontradas:', subjects.length);
     res.json(subjects);
   } catch (error) {
+    console.error('Erro ao buscar matérias:', error);
+    console.error('Stack:', error.stack);
     next(error);
   }
 });

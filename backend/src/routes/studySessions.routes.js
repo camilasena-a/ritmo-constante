@@ -46,75 +46,104 @@ const sessionSchema = z.object({
 });
 
 const normalizeDate = (date) => {
+  if (!date) return null;
   const parsed = new Date(date);
+  if (isNaN(parsed.getTime())) return null;
   return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
 };
 
 const syncStatistics = async (userId, subjectId, date) => {
   if (!userId || !subjectId || !date) return;
 
-  const statsDate = normalizeDate(date);
-  const aggregates = await prisma.studySession.aggregate({
-    where: {
-      userId,
-      subjectId,
-      date: {
-        gte: startOfDay(statsDate),
-        lte: endOfDay(statsDate),
+  try {
+    const statsDate = normalizeDate(date);
+    if (!statsDate || isNaN(statsDate.getTime())) {
+      console.error('Data inválida para syncStatistics:', date);
+      return;
+    }
+
+    const aggregates = await prisma.studySession.aggregate({
+      where: {
+        userId,
+        subjectId,
+        date: {
+          gte: startOfDay(statsDate),
+          lte: endOfDay(statsDate),
+        },
       },
-    },
-    _sum: {
-      duration: true,
-      questions: true,
-      correctAnswers: true,
-    },
-    _count: {
-      _all: true,
-    },
-  });
+      _sum: {
+        duration: true,
+        questions: true,
+        correctAnswers: true,
+      },
+      _count: {
+        _all: true,
+      },
+    });
 
-  const totalSessions = aggregates._count?._all || 0;
-  const statsWhere = {
-    userId_subjectId_date: {
-      userId,
-      subjectId,
-      date: statsDate,
-    },
-  };
+    const totalSessions = aggregates._count?._all || 0;
 
-  if (totalSessions === 0) {
-    await prisma.statistics.delete({ where: statsWhere }).catch(() => {});
-    return;
+    if (totalSessions === 0) {
+      await prisma.statistics.deleteMany({ 
+        where: {
+          userId,
+          subjectId,
+          date: statsDate,
+        }
+      }).catch(() => {});
+      return;
+    }
+
+    const totalTime = aggregates._sum.duration || 0;
+    const totalQuestions = aggregates._sum.questions || 0;
+    const totalCorrect = aggregates._sum.correctAnswers || 0;
+    const accuracy = totalQuestions > 0 ? totalCorrect / totalQuestions : null;
+
+    // Verificar se já existe estatística para este dia/matéria
+    const existingStats = await prisma.statistics.findFirst({
+      where: {
+        userId,
+        subjectId,
+        date: statsDate,
+      },
+    }).catch(() => null);
+
+    if (existingStats) {
+      await prisma.statistics.update({
+        where: { id: existingStats.id },
+        data: {
+          totalTime,
+          totalQuestions,
+          correctAnswers: totalCorrect,
+          accuracy,
+        },
+      });
+    } else {
+      await prisma.statistics.create({
+        data: {
+          userId,
+          subjectId,
+          date: statsDate,
+          totalTime,
+          totalQuestions,
+          correctAnswers: totalCorrect,
+          accuracy,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao sincronizar estatísticas:', error);
+    // Não lançar o erro para não interromper o fluxo principal
   }
-
-  const totalTime = aggregates._sum.duration || 0;
-  const totalQuestions = aggregates._sum.questions || 0;
-  const totalCorrect = aggregates._sum.correctAnswers || 0;
-  const accuracy = totalQuestions > 0 ? totalCorrect / totalQuestions : null;
-
-  await prisma.statistics.upsert({
-    where: statsWhere,
-    update: {
-      totalTime,
-      totalQuestions,
-      correctAnswers: totalCorrect,
-      accuracy,
-    },
-    create: {
-      userId,
-      subjectId,
-      date: statsDate,
-      totalTime,
-      totalQuestions,
-      correctAnswers: totalCorrect,
-      accuracy,
-    },
-  });
 };
 
 // Listar sessões
 router.get('/', async (req, res, next) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Usuário não autenticado' });
+    }
+
     const { subjectId, startDate, endDate, type } = req.query;
 
     const where = {
@@ -198,6 +227,11 @@ router.post('/', async (req, res, next) => {
     const sessionDate = new Date(session.date);
     const dateOnly = normalizeDate(sessionDate);
 
+    if (!dateOnly || isNaN(dateOnly.getTime())) {
+      console.error('Data inválida ao atualizar constância:', session.date);
+      return res.status(400).json({ error: 'Data inválida da sessão' });
+    }
+
     await prisma.constancy.upsert({
       where: {
         userId_date: {
@@ -217,6 +251,9 @@ router.post('/', async (req, res, next) => {
         studied: true,
         minutes: session.duration,
       },
+    }).catch((error) => {
+      console.error('Erro ao atualizar constância:', error);
+      // Não interrompe o processo, mas loga o erro
     });
 
     // Atualizar estatísticas
@@ -227,18 +264,23 @@ router.post('/', async (req, res, next) => {
       const revisionIntervals = [1, 7, 30]; // 24h, 7 dias, 30 dias
 
       for (const interval of revisionIntervals) {
-        const scheduledDate = new Date(sessionDate);
-        scheduledDate.setDate(scheduledDate.getDate() + interval);
+        try {
+          const scheduledDate = new Date(sessionDate);
+          scheduledDate.setDate(scheduledDate.getDate() + interval);
 
-        await prisma.revision.create({
-          data: {
-            userId: req.userId,
-            subjectId: data.subjectId,
-            studySessionId: session.id,
-            scheduledDate,
-            interval,
-          },
-        });
+          await prisma.revision.create({
+            data: {
+              userId: req.userId,
+              subjectId: data.subjectId,
+              studySessionId: session.id,
+              scheduledDate,
+              interval,
+            },
+          });
+        } catch (revisionError) {
+          // Log do erro mas não interrompe o processo
+          console.error(`Erro ao criar revisão para intervalo ${interval}:`, revisionError);
+        }
       }
     }
 

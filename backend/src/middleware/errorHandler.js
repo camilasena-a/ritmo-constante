@@ -3,6 +3,10 @@ import { Prisma } from '@prisma/client';
 
 export const errorHandler = (err, req, res, next) => {
   console.error('Erro:', err);
+  console.error('Stack:', err.stack);
+  console.error('URL:', req.url);
+  console.error('Method:', req.method);
+  console.error('Body:', req.body);
 
   // Erros de validação Zod
   if (err instanceof z.ZodError) {
@@ -103,9 +107,17 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   // Erro genérico do servidor
-  res.status(err.status || 500).json({
-    error: err.message || 'Erro interno do servidor. Tente novamente mais tarde.',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  const statusCode = err.status || 500;
+  const errorMessage = err.message || 'Erro interno do servidor. Tente novamente mais tarde.';
+  
+  console.error(`Erro ${statusCode}:`, errorMessage);
+  
+  res.status(statusCode).json({
+    error: errorMessage,
+    ...(process.env.NODE_ENV === 'development' && { 
+      stack: err.stack,
+      details: err.toString(),
+    }),
   });
 };
 

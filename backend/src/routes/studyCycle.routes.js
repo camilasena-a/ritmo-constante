@@ -24,6 +24,10 @@ const cycleItemSchema = z.object({
 // Listar ciclos do usuário
 router.get('/', async (req, res, next) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Usuário não autenticado' });
+    }
+
     const cycles = await prisma.studyCycle.findMany({
       where: { userId: req.userId },
       include: {

@@ -1,0 +1,77 @@
+═══════════════════════════════════════════════════════════════
+   COMO INICIAR O BACKEND - INSTRUÇÕES SIMPLES
+═══════════════════════════════════════════════════════════════
+
+OPÇÃO 1: DUPLO CLIQUE (MAIS FÁCIL!)
+─────────────────────────────────────
+
+1. Encontre o arquivo: iniciar-backend.bat
+2. Dê DUPLO CLIQUE nele
+3. Uma nova janela será aberta com o backend rodando
+4. Os logs aparecerão nessa nova janela!
+
+
+OPÇÃO 2: POWER SHELL
+─────────────────────
+
+1. Abra o PowerShell (Win + X → Windows PowerShell)
+2. Digite: cd "C:\Users\user\Documents\Repositorios\ritmo-constante"
+3. Pressione Enter
+4. Digite: .\iniciar-backend.bat
+5. Pressione Enter
+
+
+OPÇÃO 3: TERMINAL DO CURSOR/VS CODE
+────────────────────────────────────
+
+1. Abra o terminal integrado (Ctrl + `)
+2. Digite: .\iniciar-backend.bat
+3. Pressione Enter
+
+
+═══════════════════════════════════════════════════════════════
+   O QUE VOCÊ VERÁ
+═══════════════════════════════════════════════════════════════
+
+Após executar, uma NOVA JANELA será aberta mostrando:
+
+✅ Prisma Client conectado ao banco de dados
+🚀 Servidor rodando na porta 3001
+📡 Ambiente: development
+
+Quando você recarregar a página (F5), verá logs como:
+
+Verificando usuário padrão...
+Usuário padrão encontrado: [id]
+Buscando matérias para userId: [id]
+Matérias encontradas: [número]
+
+
+═══════════════════════════════════════════════════════════════
+   VERIFICAR SE ESTÁ FUNCIONANDO
+═══════════════════════════════════════════════════════════════
+
+1. Abra o navegador
+2. Acesse: http://localhost:3001/health
+3. Deve aparecer: {"status":"ok","timestamp":"..."}
+
+
+═══════════════════════════════════════════════════════════════
+   PROBLEMAS?
+═══════════════════════════════════════════════════════════════
+
+Se não aparecer uma nova janela:
+- Verifique se o arquivo iniciar-backend.bat está na pasta raiz
+- Tente executar como Administrador (botão direito → Executar como administrador)
+
+Se aparecer erro de "npm não encontrado":
+- Execute primeiro: cd backend && npm install
+- Depois tente novamente
+
+Se o servidor não iniciar:
+- Verifique se a porta 3001 está livre
+- Feche outros programas que possam estar usando a porta
+
+
+═══════════════════════════════════════════════════════════════
+
