@@ -3,7 +3,12 @@ import api from './client';
 export const studySessionsApi = {
   getAll: async (params = {}) => {
     const response = await api.get('/study-sessions', { params });
-    return response.data;
+    // Se a resposta tiver paginação, retornar estrutura paginada
+    if (response.data.data && response.data.pagination) {
+      return response.data;
+    }
+    // Compatibilidade com versão antiga (sem paginação)
+    return { data: response.data, pagination: null };
   },
   
   getById: async (id) => {

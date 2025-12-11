@@ -144,7 +144,16 @@ router.get('/', async (req, res, next) => {
       return res.status(401).json({ error: 'Usuário não autenticado' });
     }
 
-    const { subjectId, startDate, endDate, type } = req.query;
+    const { subjectId, startDate, endDate, type, page = '1', limit = '20' } = req.query;
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Validar parâmetros de paginação
+    if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({ error: 'Parâmetros de paginação inválidos' });
+    }
 
     const where = {
       userId: req.userId,
@@ -158,15 +167,33 @@ router.get('/', async (req, res, next) => {
       }),
     };
 
-    const sessions = await prisma.studySession.findMany({
-      where,
-      include: {
-        subject: true,
-      },
-      orderBy: { date: 'desc' },
-    });
+    // Buscar total de registros e dados paginados em paralelo
+    const [total, sessions] = await Promise.all([
+      prisma.studySession.count({ where }),
+      prisma.studySession.findMany({
+        where,
+        include: {
+          subject: true,
+        },
+        orderBy: { date: 'desc' },
+        skip,
+        take: limitNum,
+      }),
+    ]);
 
-    res.json(sessions);
+    const totalPages = Math.ceil(total / limitNum);
+
+    res.json({
+      data: sessions,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1,
+      },
+    });
   } catch (error) {
     next(error);
   }

@@ -25,14 +25,17 @@ export default function Dashboard() {
     try {
       const [overviewData, sessionsData, revisionsData, cycleData] = await Promise.all([
         statisticsApi.getOverview('7'),
-        studySessionsApi.getAll({ startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() }),
-        revisionsApi.getPending(),
+        studySessionsApi.getAll({ startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), limit: 5 }),
+        revisionsApi.getPending({ limit: 5 }),
         studyCyclesApi.getActive().catch(() => null),
       ]);
 
       setOverview(overviewData);
-      setRecentSessions(sessionsData.slice(0, 5));
-      setPendingRevisions(revisionsData.slice(0, 5));
+      // Compatibilidade com resposta paginada ou não paginada
+      const sessionsList = sessionsData.data || sessionsData;
+      const revisionsList = revisionsData.data || revisionsData;
+      setRecentSessions(Array.isArray(sessionsList) ? sessionsList.slice(0, 5) : []);
+      setPendingRevisions(Array.isArray(revisionsList) ? revisionsList.slice(0, 5) : []);
       setActiveCycle(cycleData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);

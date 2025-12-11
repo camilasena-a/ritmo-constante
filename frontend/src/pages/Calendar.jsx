@@ -1,21 +1,31 @@
 import { useEffect, useState } from 'react';
 import { tasksApi } from '../api/tasks';
 import Loading from '../components/Loading';
+import Pagination from '../components/Pagination';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, startOfWeek, endOfWeek, isSameDay, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import TaskForm from '../components/TaskForm';
 
 export default function Calendar() {
   const [tasks, setTasks] = useState([]);
+  const [allTasks, setAllTasks] = useState([]); // Todas as tarefas para o calendário
+  const [tasksPagination, setTasksPagination] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [loading, setLoading] = useState(true);
+  const [tasksLoading, setTasksLoading] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [tasksPage, setTasksPage] = useState(1);
+  const [tasksFilter, setTasksFilter] = useState({ completed: '' });
 
   useEffect(() => {
     loadTasks();
   }, [currentMonth]);
+
+  useEffect(() => {
+    loadTasksList();
+  }, [tasksPage, tasksFilter, currentMonth]);
 
   const loadTasks = async () => {
     try {
@@ -25,13 +35,45 @@ export default function Calendar() {
       const tasksData = await tasksApi.getAll({
         startDate: monthStart.toISOString(),
         endDate: monthEnd.toISOString(),
+        limit: 100, // Limite maior para calendário mensal
       });
       
-      setTasks(tasksData);
+      // Compatibilidade com resposta paginada ou não paginada
+      setAllTasks(tasksData.data || tasksData);
     } catch (error) {
       console.error('Erro ao carregar tarefas:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTasksList = async () => {
+    setTasksLoading(true);
+    try {
+      const monthStart = startOfMonth(currentMonth);
+      const monthEnd = endOfMonth(currentMonth);
+      
+      const params = {
+        page: tasksPage,
+        limit: 20,
+        startDate: monthStart.toISOString(),
+        endDate: monthEnd.toISOString(),
+        ...(tasksFilter.completed !== '' && { completed: tasksFilter.completed === 'true' }),
+      };
+
+      const tasksData = await tasksApi.getAll(params);
+      
+      if (tasksData.data && tasksData.pagination) {
+        setTasks(tasksData.data);
+        setTasksPagination(tasksData.pagination);
+      } else {
+        setTasks(tasksData);
+        setTasksPagination(null);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar lista de tarefas:', error);
+    } finally {
+      setTasksLoading(false);
     }
   };
 
@@ -42,7 +84,7 @@ export default function Calendar() {
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
   const getTasksForDay = (date) => {
-    return tasks.filter((task) => {
+    return allTasks.filter((task) => {
       const taskDate = new Date(task.date);
       return isSameDay(taskDate, date);
     });
@@ -64,6 +106,7 @@ export default function Calendar() {
     setSelectedTask(null);
     setSelectedDate(null);
     loadTasks();
+    loadTasksList();
   };
 
   const handleTaskDelete = async (taskId) => {
@@ -71,6 +114,7 @@ export default function Calendar() {
       try {
         await tasksApi.delete(taskId);
         loadTasks();
+        loadTasksList();
       } catch (error) {
         console.error('Erro ao excluir tarefa:', error);
       }
@@ -81,6 +125,7 @@ export default function Calendar() {
     try {
       await tasksApi.update(task.id, { completed: !task.completed });
       loadTasks();
+      loadTasksList();
     } catch (error) {
       console.error('Erro ao atualizar tarefa:', error);
     }
@@ -209,21 +254,42 @@ export default function Calendar() {
 
       {/* Lista de tarefas do mês */}
       <div className="card">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          Tarefas do Mês
-        </h2>
-        {tasks.length > 0 ? (
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Tarefas do Mês
+          </h2>
+          <select
+            value={tasksFilter.completed}
+            onChange={(e) => {
+              setTasksFilter(prev => ({ ...prev, completed: e.target.value }));
+              setTasksPage(1);
+            }}
+            className="input w-48"
+          >
+            <option value="">Todas</option>
+            <option value="false">Pendentes</option>
+            <option value="true">Concluídas</option>
+          </select>
+        </div>
+        {tasksLoading ? (
           <div className="space-y-2">
-            {tasks
-              .sort((a, b) => {
-                const dateA = new Date(a.date);
-                const dateB = new Date(b.date);
-                if (dateA.getTime() !== dateB.getTime()) {
-                  return dateA - dateB;
-                }
-                return (a.startTime || '').localeCompare(b.startTime || '');
-              })
-              .map((task) => {
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+            ))}
+          </div>
+        ) : tasks.length > 0 ? (
+          <>
+            <div className="space-y-2">
+              {tasks
+                .sort((a, b) => {
+                  const dateA = new Date(a.date);
+                  const dateB = new Date(b.date);
+                  if (dateA.getTime() !== dateB.getTime()) {
+                    return dateA - dateB;
+                  }
+                  return (a.startTime || '').localeCompare(b.startTime || '');
+                })
+                .map((task) => {
                 const taskDate = new Date(task.date);
                 return (
                   <div
@@ -297,7 +363,11 @@ export default function Calendar() {
                   </div>
                 );
               })}
-          </div>
+            </div>
+            {tasksPagination && (
+              <Pagination pagination={tasksPagination} onPageChange={setTasksPage} className="mt-4" />
+            )}
+          </>
         ) : (
           <p className="text-gray-500 dark:text-gray-400">Nenhuma tarefa agendada para este mês</p>
         )}
@@ -326,6 +396,7 @@ export default function Calendar() {
     </div>
   );
 }
+
 
 
 

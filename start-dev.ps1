@@ -33,3 +33,4 @@ Write-Host ""
 Write-Host "Pressione qualquer tecla para fechar esta janela..." -ForegroundColor Gray
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 
+
