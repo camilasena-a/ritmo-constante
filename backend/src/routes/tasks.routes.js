@@ -26,7 +26,16 @@ router.get('/', async (req, res, next) => {
       return res.status(401).json({ error: 'Usuário não autenticado' });
     }
 
-    const { startDate, endDate, completed } = req.query;
+    const { startDate, endDate, completed, page = '1', limit = '20' } = req.query;
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Validar parâmetros de paginação
+    if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({ error: 'Parâmetros de paginação inválidos' });
+    }
 
     const where = {
       userId: req.userId,
@@ -39,15 +48,33 @@ router.get('/', async (req, res, next) => {
       ...(completed !== undefined && { completed: completed === 'true' }),
     };
 
-    const tasks = await prisma.task.findMany({
-      where,
-      orderBy: [
-        { date: 'asc' },
-        { startTime: 'asc' },
-      ],
-    });
+    // Buscar total de registros e dados paginados em paralelo
+    const [total, tasks] = await Promise.all([
+      prisma.task.count({ where }),
+      prisma.task.findMany({
+        where,
+        orderBy: [
+          { date: 'asc' },
+          { startTime: 'asc' },
+        ],
+        skip,
+        take: limitNum,
+      }),
+    ]);
 
-    res.json(tasks);
+    const totalPages = Math.ceil(total / limitNum);
+
+    res.json({
+      data: tasks,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1,
+      },
+    });
   } catch (error) {
     next(error);
   }

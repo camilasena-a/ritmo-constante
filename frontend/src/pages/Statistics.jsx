@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { statisticsApi } from '../api/statistics';
+import { studySessionsApi } from '../api/studySessions';
 import { Skeleton, SkeletonGrid, SkeletonChart, SkeletonTable } from '../components/Skeleton';
+import Pagination from '../components/Pagination';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -31,12 +35,21 @@ export default function Statistics() {
   const [overview, setOverview] = useState(null);
   const [bySubject, setBySubject] = useState([]);
   const [timeline, setTimeline] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [sessionsPagination, setSessionsPagination] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
   const [period, setPeriod] = useState('30');
+  const [sessionsPage, setSessionsPage] = useState(1);
+  const [sessionsFilter, setSessionsFilter] = useState({ subjectId: '', type: '', startDate: '', endDate: '' });
 
   useEffect(() => {
     loadData();
   }, [period]);
+
+  useEffect(() => {
+    loadSessions();
+  }, [sessionsPage, sessionsFilter, period]);
 
   const loadData = async () => {
     try {
@@ -55,10 +68,47 @@ export default function Statistics() {
     }
   };
 
+  const loadSessions = async () => {
+    setSessionsLoading(true);
+    try {
+      const days = parseInt(period);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      const params = {
+        page: sessionsPage,
+        limit: 20,
+        startDate: sessionsFilter.startDate || startDate.toISOString(),
+        endDate: sessionsFilter.endDate || new Date().toISOString(),
+        ...(sessionsFilter.subjectId && { subjectId: sessionsFilter.subjectId }),
+        ...(sessionsFilter.type && { type: sessionsFilter.type }),
+      };
+
+      const sessionsData = await studySessionsApi.getAll(params);
+      
+      if (sessionsData.data && sessionsData.pagination) {
+        setSessions(sessionsData.data);
+        setSessionsPagination(sessionsData.pagination);
+      } else {
+        setSessions(sessionsData);
+        setSessionsPagination(null);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar sessões:', error);
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
   const formatTime = (minutes) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
+  };
+
+  const handleFilterChange = (field, value) => {
+    setSessionsFilter(prev => ({ ...prev, [field]: value }));
+    setSessionsPage(1); // Resetar página ao mudar filtro
   };
 
   const timelineChartData = {
@@ -264,6 +314,86 @@ export default function Statistics() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Lista de sessões com paginação */}
+      <div className="card">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Todas as Sessões</h2>
+        
+        {/* Filtros */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <select
+            value={sessionsFilter.type}
+            onChange={(e) => handleFilterChange('type', e.target.value)}
+            className="input"
+          >
+            <option value="">Todos os tipos</option>
+            <option value="study">Estudo</option>
+            <option value="review">Revisão</option>
+            <option value="questions">Questões</option>
+          </select>
+          <input
+            type="date"
+            value={sessionsFilter.startDate}
+            onChange={(e) => handleFilterChange('startDate', e.target.value)}
+            className="input"
+            placeholder="Data inicial"
+          />
+          <input
+            type="date"
+            value={sessionsFilter.endDate}
+            onChange={(e) => handleFilterChange('endDate', e.target.value)}
+            className="input"
+            placeholder="Data final"
+          />
+          <button
+            onClick={() => {
+              setSessionsFilter({ subjectId: '', type: '', startDate: '', endDate: '' });
+              setSessionsPage(1);
+            }}
+            className="btn btn-secondary"
+          >
+            Limpar Filtros
+          </button>
+        </div>
+
+        {sessionsLoading ? (
+          <SkeletonList items={5} />
+        ) : sessions.length > 0 ? (
+          <>
+            <div className="space-y-3">
+              {sessions.map((session) => (
+                <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: session.subject?.color || '#6366f1' }}
+                    />
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{session.subject?.name}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {format(new Date(session.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} • {formatTime(session.duration)}
+                      </p>
+                      {session.questions > 0 && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          {session.questions} questões • {session.correctAnswers} acertos ({((session.correctAnswers / session.questions) * 100).toFixed(1)}%)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full">
+                    {session.type === 'study' ? 'Estudo' : session.type === 'review' ? 'Revisão' : 'Questões'}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {sessionsPagination && (
+              <Pagination pagination={sessionsPagination} onPageChange={setSessionsPage} className="mt-4" />
+            )}
+          </>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 text-center py-8">Nenhuma sessão encontrada</p>
+        )}
       </div>
         </>
       )}

@@ -3,7 +3,12 @@ import api from './client';
 export const tasksApi = {
   getAll: async (params = {}) => {
     const response = await api.get('/tasks', { params });
-    return response.data;
+    // Se a resposta tiver paginação, retornar estrutura paginada
+    if (response.data.data && response.data.pagination) {
+      return response.data;
+    }
+    // Compatibilidade com versão antiga (sem paginação)
+    return { data: response.data, pagination: null };
   },
   
   getById: async (id) => {
@@ -25,6 +30,7 @@ export const tasksApi = {
     await api.delete(`/tasks/${id}`);
   },
 };
+
 
 
 

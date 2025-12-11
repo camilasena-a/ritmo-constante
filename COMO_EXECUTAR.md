@@ -119,3 +119,4 @@ Após executar o script, você deve ver:
 - **Use Ctrl+C** na janela do backend para parar o servidor
 - **Recarregue a página** (F5) para ver novos logs aparecerem
 
+

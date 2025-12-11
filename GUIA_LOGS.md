@@ -132,3 +132,4 @@ Mensagem: Invalid `prisma.user.findFirst()` invocation
 Stack: [stack trace completo]
 ```
 
+
