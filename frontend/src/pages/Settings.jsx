@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { subjectsApi } from '../api/subjects';
 import { foldersApi } from '../api/folders';
 import Loading from '../components/Loading';
+import ConfirmModal from '../components/ConfirmModal';
 import useToastStore from '../store/toastStore';
 
 export default function Settings() {
@@ -13,6 +14,10 @@ export default function Settings() {
   const selectedFolderId = searchParams.get('folder');
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [showDeleteSubjectModal, setShowDeleteSubjectModal] = useState(false);
+  const [showDeleteFolderModal, setShowDeleteFolderModal] = useState(false);
+  const [subjectToDelete, setSubjectToDelete] = useState(null);
+  const [folderToDelete, setFolderToDelete] = useState(null);
   const [editingSubject, setEditingSubject] = useState(null);
   const [editingFolder, setEditingFolder] = useState(null);
   const [subjectForm, setSubjectForm] = useState({ 
@@ -109,33 +114,43 @@ export default function Settings() {
     setShowFolderModal(true);
   };
 
-  const handleDeleteSubject = async (id) => {
-    if (window.confirm('Tem certeza que deseja deletar esta matéria?')) {
-      try {
-        await subjectsApi.delete(id);
-        useToastStore.getState().success('Matéria deletada com sucesso!');
-        await loadData();
-        // Disparar evento para atualizar o Layout
-        window.dispatchEvent(new Event('subjectsUpdated'));
-      } catch (error) {
-        console.error('Erro ao deletar matéria:', error);
-        // O toast de erro já será exibido pelo client.js
-      }
+  const handleDeleteSubjectClick = (id) => {
+    setSubjectToDelete(id);
+    setShowDeleteSubjectModal(true);
+  };
+
+  const handleDeleteSubject = async () => {
+    if (!subjectToDelete) return;
+    try {
+      await subjectsApi.delete(subjectToDelete);
+      useToastStore.getState().success('Matéria deletada com sucesso!');
+      await loadData();
+      // Disparar evento para atualizar o Layout
+      window.dispatchEvent(new Event('subjectsUpdated'));
+      setSubjectToDelete(null);
+    } catch (error) {
+      console.error('Erro ao deletar matéria:', error);
+      // O toast de erro já será exibido pelo client.js
     }
   };
 
-  const handleDeleteFolder = async (id) => {
-    if (window.confirm('Tem certeza que deseja deletar esta pasta? As matérias dentro dela não serão deletadas, mas ficarão sem pasta.')) {
-      try {
-        await foldersApi.delete(id);
-        useToastStore.getState().success('Pasta deletada com sucesso!');
-        await loadData();
-        // Disparar evento para atualizar o Layout
-        window.dispatchEvent(new Event('foldersUpdated'));
-      } catch (error) {
-        console.error('Erro ao deletar pasta:', error);
-        // O toast de erro já será exibido pelo client.js
-      }
+  const handleDeleteFolderClick = (id) => {
+    setFolderToDelete(id);
+    setShowDeleteFolderModal(true);
+  };
+
+  const handleDeleteFolder = async () => {
+    if (!folderToDelete) return;
+    try {
+      await foldersApi.delete(folderToDelete);
+      useToastStore.getState().success('Pasta deletada com sucesso!');
+      await loadData();
+      // Disparar evento para atualizar o Layout
+      window.dispatchEvent(new Event('foldersUpdated'));
+      setFolderToDelete(null);
+    } catch (error) {
+      console.error('Erro ao deletar pasta:', error);
+      // O toast de erro já será exibido pelo client.js
     }
   };
 
@@ -278,7 +293,7 @@ export default function Settings() {
                     Editar
                   </button>
                   <button
-                    onClick={() => handleDeleteFolder(folder.id)}
+                    onClick={() => handleDeleteFolderClick(folder.id)}
                     className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                   >
                     Deletar
@@ -370,7 +385,7 @@ export default function Settings() {
                           Editar
                         </button>
                         <button
-                          onClick={() => handleDeleteSubject(subject.id)}
+                          onClick={() => handleDeleteSubjectClick(subject.id)}
                           className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                         >
                           Deletar
@@ -526,6 +541,36 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      {/* Modal de confirmação para deletar matéria */}
+      <ConfirmModal
+        isOpen={showDeleteSubjectModal}
+        onClose={() => {
+          setShowDeleteSubjectModal(false);
+          setSubjectToDelete(null);
+        }}
+        onConfirm={handleDeleteSubject}
+        title="Deletar Matéria"
+        message="Tem certeza que deseja deletar esta matéria? Esta ação não pode ser desfeita."
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        type="danger"
+      />
+
+      {/* Modal de confirmação para deletar pasta */}
+      <ConfirmModal
+        isOpen={showDeleteFolderModal}
+        onClose={() => {
+          setShowDeleteFolderModal(false);
+          setFolderToDelete(null);
+        }}
+        onConfirm={handleDeleteFolder}
+        title="Deletar Pasta"
+        message="Tem certeza que deseja deletar esta pasta? As matérias dentro dela não serão deletadas, mas ficarão sem pasta. Esta ação não pode ser desfeita."
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        type="danger"
+      />
     </div>
   );
 }

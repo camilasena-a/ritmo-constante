@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { tasksApi } from '../api/tasks';
 import Loading from '../components/Loading';
 import Pagination from '../components/Pagination';
+import ConfirmModal from '../components/ConfirmModal';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, startOfWeek, endOfWeek, isSameDay, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import TaskForm from '../components/TaskForm';
@@ -14,8 +15,10 @@ export default function Calendar() {
   const [loading, setLoading] = useState(true);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showDeleteTaskModal, setShowDeleteTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [taskToDelete, setTaskToDelete] = useState(null);
   const [tasksPage, setTasksPage] = useState(1);
   const [tasksFilter, setTasksFilter] = useState({ completed: '' });
 
@@ -109,15 +112,20 @@ export default function Calendar() {
     loadTasksList();
   };
 
-  const handleTaskDelete = async (taskId) => {
-    if (window.confirm('Tem certeza que deseja excluir esta tarefa?')) {
-      try {
-        await tasksApi.delete(taskId);
-        loadTasks();
-        loadTasksList();
-      } catch (error) {
-        console.error('Erro ao excluir tarefa:', error);
-      }
+  const handleTaskDeleteClick = (taskId) => {
+    setTaskToDelete(taskId);
+    setShowDeleteTaskModal(true);
+  };
+
+  const handleTaskDelete = async () => {
+    if (!taskToDelete) return;
+    try {
+      await tasksApi.delete(taskToDelete);
+      loadTasks();
+      loadTasksList();
+      setTaskToDelete(null);
+    } catch (error) {
+      console.error('Erro ao excluir tarefa:', error);
     }
   };
 
@@ -354,7 +362,7 @@ export default function Calendar() {
                         Editar
                       </button>
                       <button
-                        onClick={() => handleTaskDelete(task.id)}
+                        onClick={() => handleTaskDeleteClick(task.id)}
                         className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                       >
                         Excluir
@@ -393,6 +401,21 @@ export default function Calendar() {
           </div>
         </div>
       )}
+
+      {/* Modal de confirmação para deletar tarefa */}
+      <ConfirmModal
+        isOpen={showDeleteTaskModal}
+        onClose={() => {
+          setShowDeleteTaskModal(false);
+          setTaskToDelete(null);
+        }}
+        onConfirm={handleTaskDelete}
+        title="Excluir Tarefa"
+        message="Tem certeza que deseja excluir esta tarefa? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        type="danger"
+      />
     </div>
   );
 }

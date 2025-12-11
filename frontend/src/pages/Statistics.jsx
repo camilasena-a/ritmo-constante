@@ -3,6 +3,8 @@ import { statisticsApi } from '../api/statistics';
 import { studySessionsApi } from '../api/studySessions';
 import { Skeleton, SkeletonGrid, SkeletonChart, SkeletonTable } from '../components/Skeleton';
 import Pagination from '../components/Pagination';
+import ConfirmModal from '../components/ConfirmModal';
+import useToastStore from '../store/toastStore';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -42,6 +44,8 @@ export default function Statistics() {
   const [period, setPeriod] = useState('30');
   const [sessionsPage, setSessionsPage] = useState(1);
   const [sessionsFilter, setSessionsFilter] = useState({ subjectId: '', type: '', startDate: '', endDate: '' });
+  const [showDeleteSessionModal, setShowDeleteSessionModal] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -109,6 +113,25 @@ export default function Statistics() {
   const handleFilterChange = (field, value) => {
     setSessionsFilter(prev => ({ ...prev, [field]: value }));
     setSessionsPage(1); // Resetar página ao mudar filtro
+  };
+
+  const handleDeleteSessionClick = (sessionId) => {
+    setSessionToDelete(sessionId);
+    setShowDeleteSessionModal(true);
+  };
+
+  const handleDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    try {
+      await studySessionsApi.delete(sessionToDelete);
+      useToastStore.getState().success('Sessão deletada com sucesso!');
+      await loadSessions();
+      await loadData(); // Recarregar estatísticas
+      setSessionToDelete(null);
+    } catch (error) {
+      console.error('Erro ao deletar sessão:', error);
+      // O toast de erro já será exibido pelo client.js
+    }
   };
 
   const timelineChartData = {
@@ -364,12 +387,12 @@ export default function Statistics() {
             <div className="space-y-3">
               {sessions.map((session) => (
                 <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3 flex-1">
                     <div
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: session.subject?.color || '#6366f1' }}
                     />
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium text-gray-900 dark:text-gray-100">{session.subject?.name}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {format(new Date(session.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} • {formatTime(session.duration)}
@@ -381,9 +404,20 @@ export default function Statistics() {
                       )}
                     </div>
                   </div>
-                  <span className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full">
-                    {session.type === 'study' ? 'Estudo' : session.type === 'review' ? 'Revisão' : 'Questões'}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full">
+                      {session.type === 'study' ? 'Estudo' : session.type === 'review' ? 'Revisão' : 'Questões'}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteSessionClick(session.id)}
+                      className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                      title="Deletar sessão"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -397,6 +431,21 @@ export default function Statistics() {
       </div>
         </>
       )}
+
+      {/* Modal de confirmação para deletar sessão */}
+      <ConfirmModal
+        isOpen={showDeleteSessionModal}
+        onClose={() => {
+          setShowDeleteSessionModal(false);
+          setSessionToDelete(null);
+        }}
+        onConfirm={handleDeleteSession}
+        title="Deletar Sessão"
+        message="Tem certeza que deseja deletar esta sessão de estudo? Esta ação não pode ser desfeita e afetará suas estatísticas."
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        type="danger"
+      />
     </div>
   );
 }
