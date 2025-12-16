@@ -29,6 +29,7 @@ model User {
   statistics    Statistics[]
   tasks         Task[]
   folders       Folder[]
+  tags          Tag[]
   refreshTokens RefreshToken[]
   passwordResetTokens PasswordResetToken[]
 
@@ -269,8 +270,39 @@ model Task {
 
   // Relacionamentos
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags        TaskTag[]
 
   @@map("tasks")
+}
+
+model Tag {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  color       String?  @default("#6366f1")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       TaskTag[]
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model TaskTag {
+  id          String   @id @default(uuid())
+  taskId      String
+  tagId       String
+  createdAt   DateTime @default(now())
+
+  // Relacionamentos
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag         Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, tagId])
+  @@map("task_tags")
 }
 
 model RefreshToken {

@@ -14,6 +14,7 @@ const taskSchema = z.object({
   color: z.string().optional(),
   priority: z.enum(['low', 'medium', 'high']).optional(),
   completed: z.boolean().optional(),
+  tagIds: z.array(z.string().uuid()).optional(),
 });
 
 // Usa usuário padrão (sem necessidade de autenticação)
@@ -26,7 +27,7 @@ router.get('/', async (req, res, next) => {
       return res.status(401).json({ error: 'Usuário não autenticado' });
     }
 
-    const { startDate, endDate, completed, page = '1', limit = '20' } = req.query;
+    const { startDate, endDate, completed, tagIds, page = '1', limit = '20' } = req.query;
 
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
@@ -35,6 +36,12 @@ router.get('/', async (req, res, next) => {
     // Validar parâmetros de paginação
     if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
       return res.status(400).json({ error: 'Parâmetros de paginação inválidos' });
+    }
+
+    // Processar tagIds (pode ser string única ou array separado por vírgula)
+    let tagIdsArray = [];
+    if (tagIds) {
+      tagIdsArray = Array.isArray(tagIds) ? tagIds : tagIds.split(',').filter(Boolean);
     }
 
     const where = {
@@ -46,6 +53,15 @@ router.get('/', async (req, res, next) => {
         },
       }),
       ...(completed !== undefined && { completed: completed === 'true' }),
+      ...(tagIdsArray.length > 0 && {
+        tags: {
+          some: {
+            tagId: {
+              in: tagIdsArray,
+            },
+          },
+        },
+      }),
     };
 
     // Buscar total de registros e dados paginados em paralelo
@@ -53,6 +69,13 @@ router.get('/', async (req, res, next) => {
       prisma.task.count({ where }),
       prisma.task.findMany({
         where,
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
         orderBy: [
           { date: 'asc' },
           { startTime: 'asc' },
@@ -64,8 +87,14 @@ router.get('/', async (req, res, next) => {
 
     const totalPages = Math.ceil(total / limitNum);
 
+    // Transformar tasks para incluir tags no formato esperado
+    const tasksWithTags = tasks.map(task => ({
+      ...task,
+      tags: task.tags.map(tt => tt.tag),
+    }));
+
     res.json({
-      data: tasks,
+      data: tasksWithTags,
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -88,13 +117,26 @@ router.get('/:id', async (req, res, next) => {
         id: req.params.id,
         userId: req.userId,
       },
+      include: {
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
     });
 
     if (!task) {
       return res.status(404).json({ error: 'Tarefa não encontrada' });
     }
 
-    res.json(task);
+    // Transformar para incluir tags no formato esperado
+    const taskWithTags = {
+      ...task,
+      tags: task.tags.map(tt => tt.tag),
+    };
+
+    res.json(taskWithTags);
   } catch (error) {
     next(error);
   }
@@ -108,16 +150,49 @@ router.post('/', async (req, res, next) => {
     }
 
     const data = taskSchema.parse(req.body);
+    const { tagIds, ...taskData } = data;
+
+    // Validar se as tags pertencem ao usuário
+    if (tagIds && tagIds.length > 0) {
+      const userTags = await prisma.tag.findMany({
+        where: {
+          id: { in: tagIds },
+          userId: req.userId,
+        },
+      });
+
+      if (userTags.length !== tagIds.length) {
+        return res.status(400).json({ error: 'Uma ou mais tags não foram encontradas ou não pertencem ao usuário' });
+      }
+    }
 
     const task = await prisma.task.create({
       data: {
-        ...data,
+        ...taskData,
         userId: req.userId,
-        date: new Date(data.date),
+        date: new Date(taskData.date),
+        tags: tagIds && tagIds.length > 0 ? {
+          create: tagIds.map(tagId => ({
+            tagId,
+          })),
+        } : undefined,
+      },
+      include: {
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
     });
 
-    res.status(201).json(task);
+    // Transformar para incluir tags no formato esperado
+    const taskWithTags = {
+      ...task,
+      tags: task.tags.map(tt => tt.tag),
+    };
+
+    res.status(201).json(taskWithTags);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Dados inválidos', details: error.errors });
@@ -141,16 +216,53 @@ router.put('/:id', async (req, res, next) => {
     }
 
     const data = taskSchema.partial().parse(req.body);
+    const { tagIds, ...taskData } = data;
 
+    // Validar se as tags pertencem ao usuário
+    if (tagIds && tagIds.length > 0) {
+      const userTags = await prisma.tag.findMany({
+        where: {
+          id: { in: tagIds },
+          userId: req.userId,
+        },
+      });
+
+      if (userTags.length !== tagIds.length) {
+        return res.status(400).json({ error: 'Uma ou mais tags não foram encontradas ou não pertencem ao usuário' });
+      }
+    }
+
+    // Atualizar tarefa e tags
     const updated = await prisma.task.update({
       where: { id: req.params.id },
       data: {
-        ...data,
-        ...(data.date && { date: new Date(data.date) }),
+        ...taskData,
+        ...(taskData.date && { date: new Date(taskData.date) }),
+        ...(tagIds !== undefined && {
+          tags: {
+            deleteMany: {}, // Remove todas as tags existentes
+            create: tagIds.map(tagId => ({
+              tagId,
+            })),
+          },
+        }),
+      },
+      include: {
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
     });
 
-    res.json(updated);
+    // Transformar para incluir tags no formato esperado
+    const taskWithTags = {
+      ...updated,
+      tags: updated.tags.map(tt => tt.tag),
+    };
+
+    res.json(taskWithTags);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Dados inválidos', details: error.errors });

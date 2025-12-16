@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { tasksApi } from '../api/tasks';
+import { tagsApi } from '../api/tags';
 import Loading from '../components/Loading';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
@@ -20,26 +21,46 @@ export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [tasksPage, setTasksPage] = useState(1);
-  const [tasksFilter, setTasksFilter] = useState({ completed: '' });
+  const [tasksFilter, setTasksFilter] = useState({ completed: '', tagIds: [] });
+  const [availableTags, setAvailableTags] = useState([]);
+
+  useEffect(() => {
+    loadTags();
+  }, []);
 
   useEffect(() => {
     loadTasks();
-  }, [currentMonth]);
+  }, [currentMonth, tasksFilter.tagIds.length]);
 
   useEffect(() => {
     loadTasksList();
   }, [tasksPage, tasksFilter, currentMonth]);
+
+  const loadTags = async () => {
+    try {
+      const tags = await tagsApi.getAll();
+      setAvailableTags(tags);
+    } catch (error) {
+      console.error('Erro ao carregar tags:', error);
+    }
+  };
 
   const loadTasks = async () => {
     try {
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
       
-      const tasksData = await tasksApi.getAll({
+      const params = {
         startDate: monthStart.toISOString(),
         endDate: monthEnd.toISOString(),
         limit: 100, // Limite maior para calendário mensal
-      });
+      };
+
+      if (tasksFilter.tagIds && tasksFilter.tagIds.length > 0) {
+        params.tagIds = tasksFilter.tagIds.join(',');
+      }
+      
+      const tasksData = await tasksApi.getAll(params);
       
       // Compatibilidade com resposta paginada ou não paginada
       setAllTasks(tasksData.data || tasksData);
@@ -62,6 +83,7 @@ export default function Calendar() {
         startDate: monthStart.toISOString(),
         endDate: monthEnd.toISOString(),
         ...(tasksFilter.completed !== '' && { completed: tasksFilter.completed === 'true' }),
+        ...(tasksFilter.tagIds && tasksFilter.tagIds.length > 0 && { tagIds: tasksFilter.tagIds.join(',') }),
       };
 
       const tasksData = await tasksApi.getAll(params);
@@ -244,8 +266,31 @@ export default function Calendar() {
                       }}
                       title={task.title}
                     >
-                      {task.startTime && `${task.startTime} - `}
-                      {task.title}
+                      <div className="flex items-center gap-1">
+                        {task.startTime && <span>{task.startTime} - </span>}
+                        <span className="truncate">{task.title}</span>
+                      </div>
+                      {task.tags && task.tags.length > 0 && (
+                        <div className="flex gap-0.5 mt-0.5 flex-wrap">
+                          {task.tags.slice(0, 2).map((tag) => (
+                            <span
+                              key={tag.id}
+                              className="px-1 py-0.5 rounded text-[10px] font-medium"
+                              style={{
+                                backgroundColor: tag.color ? `${tag.color}40` : '#6366f140',
+                                color: tag.color || '#6366f1',
+                              }}
+                            >
+                              {tag.name}
+                            </span>
+                          ))}
+                          {task.tags.length > 2 && (
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                              +{task.tags.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                   {dayTasks.length > 3 && (
@@ -262,22 +307,54 @@ export default function Calendar() {
 
       {/* Lista de tarefas do mês */}
       <div className="card">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             Tarefas do Mês
           </h2>
-          <select
-            value={tasksFilter.completed}
-            onChange={(e) => {
-              setTasksFilter(prev => ({ ...prev, completed: e.target.value }));
-              setTasksPage(1);
-            }}
-            className="input w-48"
-          >
-            <option value="">Todas</option>
-            <option value="false">Pendentes</option>
-            <option value="true">Concluídas</option>
-          </select>
+          <div className="flex items-center gap-2 flex-wrap">
+            {availableTags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {availableTags.map((tag) => {
+                  const isSelected = tasksFilter.tagIds.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => {
+                        setTasksFilter(prev => {
+                          const newTagIds = isSelected
+                            ? prev.tagIds.filter(id => id !== tag.id)
+                            : [...prev.tagIds, tag.id];
+                          return { ...prev, tagIds: newTagIds };
+                        });
+                        setTasksPage(1);
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                        isSelected
+                          ? 'bg-primary-600 text-white shadow-md'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                      style={isSelected ? { backgroundColor: tag.color || '#6366f1' } : {}}
+                    >
+                      {tag.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <select
+              value={tasksFilter.completed}
+              onChange={(e) => {
+                setTasksFilter(prev => ({ ...prev, completed: e.target.value }));
+                setTasksPage(1);
+              }}
+              className="input w-48"
+            >
+              <option value="">Todas</option>
+              <option value="false">Pendentes</option>
+              <option value="true">Concluídas</option>
+            </select>
+          </div>
         </div>
         {tasksLoading ? (
           <div className="space-y-2">
@@ -339,20 +416,38 @@ export default function Calendar() {
                             {task.description}
                           </p>
                         )}
+                        {task.tags && task.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {task.tags.map((tag) => (
+                              <span
+                                key={tag.id}
+                                className="px-2 py-0.5 rounded-full text-xs font-medium"
+                                style={{
+                                  backgroundColor: tag.color ? `${tag.color}20` : '#6366f120',
+                                  color: tag.color || '#6366f1',
+                                }}
+                              >
+                                {tag.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      {task.priority && (
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full ${
-                            task.priority === 'high'
-                              ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                              : task.priority === 'medium'
-                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                              : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                          }`}
-                        >
-                          {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
-                        </span>
-                      )}
+                      <div className="flex flex-col items-end gap-2">
+                        {task.priority && (
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              task.priority === 'high'
+                                ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                                : task.priority === 'medium'
+                                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                                : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                            }`}
+                          >
+                            {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <button

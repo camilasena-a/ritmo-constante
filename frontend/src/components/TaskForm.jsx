@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { tasksApi } from '../api/tasks';
+import { tagsApi } from '../api/tags';
 import { format } from 'date-fns';
 import useToastStore from '../store/toastStore';
 
@@ -13,10 +14,17 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
     color: '#6366f1',
     priority: 'medium',
     completed: false,
+    tagIds: [],
   });
+  const [availableTags, setAvailableTags] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingTags, setLoadingTags] = useState(true);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+
+  useEffect(() => {
+    loadTags();
+  }, []);
 
   useEffect(() => {
     if (task) {
@@ -30,9 +38,22 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
         color: task.color || '#6366f1',
         priority: task.priority || 'medium',
         completed: task.completed || false,
+        tagIds: task.tags ? task.tags.map(tag => tag.id) : [],
       });
     }
   }, [task]);
+
+  const loadTags = async () => {
+    try {
+      setLoadingTags(true);
+      const tags = await tagsApi.getAll();
+      setAvailableTags(tags);
+    } catch (error) {
+      console.error('Erro ao carregar tags:', error);
+    } finally {
+      setLoadingTags(false);
+    }
+  };
 
   const validateField = (field, value) => {
     const errors = { ...fieldErrors };
@@ -106,6 +127,7 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
       const taskData = {
         ...formData,
         date: new Date(formData.date).toISOString(),
+        tagIds: formData.tagIds.length > 0 ? formData.tagIds : undefined,
       };
 
       if (task) {
@@ -237,6 +259,52 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
             <p className="text-xs text-red-600 dark:text-red-400 mt-1">{fieldErrors.endTime}</p>
           )}
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Tags (opcional)
+        </label>
+        {loadingTags ? (
+          <div className="text-sm text-gray-500 dark:text-gray-400">Carregando tags...</div>
+        ) : availableTags.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {availableTags.map((tag) => {
+              const isSelected = formData.tagIds.includes(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => {
+                    if (isSelected) {
+                      setFormData({
+                        ...formData,
+                        tagIds: formData.tagIds.filter(id => id !== tag.id),
+                      });
+                    } else {
+                      setFormData({
+                        ...formData,
+                        tagIds: [...formData.tagIds, tag.id],
+                      });
+                    }
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                    isSelected
+                      ? 'bg-primary-600 text-white shadow-md'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                  style={isSelected ? { backgroundColor: tag.color || '#6366f1' } : {}}
+                >
+                  {tag.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Nenhuma tag disponível. Crie tags nas configurações para organizar suas tarefas.
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
