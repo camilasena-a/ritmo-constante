@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { statisticsApi } from '../api/statistics';
 import { studySessionsApi } from '../api/studySessions';
-import { Skeleton, SkeletonGrid, SkeletonChart, SkeletonTable } from '../components/Skeleton';
+import { Skeleton, SkeletonGrid, SkeletonChart, SkeletonTable, SkeletonList } from '../components/Skeleton';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
 import useToastStore from '../store/toastStore';
@@ -134,6 +134,28 @@ export default function Statistics() {
     }
   };
 
+  const handleExportPDF = async () => {
+    try {
+      useToastStore.getState().info('Gerando PDF...');
+      await statisticsApi.exportPDF(period);
+      useToastStore.getState().success('PDF gerado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      useToastStore.getState().error('Erro ao gerar PDF. Tente novamente.');
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      useToastStore.getState().info('Gerando Excel...');
+      await statisticsApi.exportExcel(period);
+      useToastStore.getState().success('Excel gerado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao exportar Excel:', error);
+      useToastStore.getState().error('Erro ao gerar Excel. Tente novamente.');
+    }
+  };
+
   const timelineChartData = {
     labels: timeline.map((item) => new Date(item.date).toLocaleDateString('pt-BR')),
     datasets: [
@@ -188,15 +210,41 @@ export default function Statistics() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Estatísticas</h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">Acompanhe seu desempenho</p>
         </div>
-        <select
-          value={period}
-          onChange={(e) => setPeriod(e.target.value)}
-          className="input w-48"
-        >
-          <option value="7">Últimos 7 dias</option>
-          <option value="30">Últimos 30 dias</option>
-          <option value="90">Últimos 90 dias</option>
-        </select>
+        <div className="flex items-center gap-3">
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="input w-48"
+          >
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+          </select>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExportPDF}
+              disabled={loading}
+              className="btn btn-secondary flex items-center gap-2"
+              title="Exportar relatório em PDF"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              PDF
+            </button>
+            <button
+              onClick={handleExportExcel}
+              disabled={loading}
+              className="btn btn-secondary flex items-center gap-2"
+              title="Exportar relatório em Excel"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Excel
+            </button>
+          </div>
+        </div>
       </div>
 
       {loading ? (
