@@ -120,3 +120,5 @@ Após executar o script, você deve ver:
 - **Recarregue a página** (F5) para ver novos logs aparecerem
 
 
+
+
