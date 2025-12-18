@@ -1,12 +1,11 @@
 import express from 'express';
 import prisma from '../config/database.js';
-import { authenticate } from '../middleware/auth.js';
+import { defaultUser } from '../middleware/defaultUser.js';
 import { z } from 'zod';
 
 const router = express.Router();
 
-// Requer autenticação JWT
-router.use(authenticate);
+router.use(defaultUser);
 
 const cycleSchema = z.object({
   name: z.string().min(1, 'Nome do ciclo é obrigatório'),
@@ -24,10 +23,6 @@ const cycleItemSchema = z.object({
 // Listar ciclos do usuário
 router.get('/', async (req, res, next) => {
   try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-
     const cycles = await prisma.studyCycle.findMany({
       where: { userId: req.userId },
       include: {

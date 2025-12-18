@@ -1,30 +1,16 @@
 import express from 'express';
 import prisma from '../config/database.js';
-import { authenticate } from '../middleware/auth.js';
+import { defaultUser } from '../middleware/defaultUser.js';
 import { z } from 'zod';
 
 const router = express.Router();
 
-// Requer autenticação JWT
-router.use(authenticate);
+router.use(defaultUser);
 
 // Listar revisões pendentes
 router.get('/pending', async (req, res, next) => {
   try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-
-    const { startDate, endDate, page = '1', limit = '20' } = req.query;
-
-    const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
-    const skip = (pageNum - 1) * limitNum;
-
-    // Validar parâmetros de paginação
-    if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
-      return res.status(400).json({ error: 'Parâmetros de paginação inválidos' });
-    }
+    const { startDate, endDate } = req.query;
 
     const where = {
       userId: req.userId,
@@ -37,33 +23,15 @@ router.get('/pending', async (req, res, next) => {
       }),
     };
 
-    // Buscar total de registros e dados paginados em paralelo
-    const [total, revisions] = await Promise.all([
-      prisma.revision.count({ where }),
-      prisma.revision.findMany({
-        where,
-        include: {
-          subject: true,
-        },
-        orderBy: { scheduledDate: 'asc' },
-        skip,
-        take: limitNum,
-      }),
-    ]);
-
-    const totalPages = Math.ceil(total / limitNum);
-
-    res.json({
-      data: revisions,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        totalPages,
-        hasNext: pageNum < totalPages,
-        hasPrev: pageNum > 1,
+    const revisions = await prisma.revision.findMany({
+      where,
+      include: {
+        subject: true,
       },
+      orderBy: { scheduledDate: 'asc' },
     });
+
+    res.json(revisions);
   } catch (error) {
     next(error);
   }
@@ -72,20 +40,7 @@ router.get('/pending', async (req, res, next) => {
 // Listar todas as revisões
 router.get('/', async (req, res, next) => {
   try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-
-    const { subjectId, completed, startDate, endDate, page = '1', limit = '20' } = req.query;
-
-    const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
-    const skip = (pageNum - 1) * limitNum;
-
-    // Validar parâmetros de paginação
-    if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
-      return res.status(400).json({ error: 'Parâmetros de paginação inválidos' });
-    }
+    const { subjectId, completed, startDate, endDate } = req.query;
 
     const where = {
       userId: req.userId,
@@ -99,33 +54,15 @@ router.get('/', async (req, res, next) => {
       }),
     };
 
-    // Buscar total de registros e dados paginados em paralelo
-    const [total, revisions] = await Promise.all([
-      prisma.revision.count({ where }),
-      prisma.revision.findMany({
-        where,
-        include: {
-          subject: true,
-        },
-        orderBy: { scheduledDate: 'desc' },
-        skip,
-        take: limitNum,
-      }),
-    ]);
-
-    const totalPages = Math.ceil(total / limitNum);
-
-    res.json({
-      data: revisions,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        totalPages,
-        hasNext: pageNum < totalPages,
-        hasPrev: pageNum > 1,
+    const revisions = await prisma.revision.findMany({
+      where,
+      include: {
+        subject: true,
       },
+      orderBy: { scheduledDate: 'desc' },
     });
+
+    res.json(revisions);
   } catch (error) {
     next(error);
   }

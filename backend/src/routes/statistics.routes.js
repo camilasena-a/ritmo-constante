@@ -1,23 +1,17 @@
 import express from 'express';
 import prisma from '../config/database.js';
-import { authenticate } from '../middleware/auth.js';
+import { defaultUser } from '../middleware/defaultUser.js';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, format } from 'date-fns';
-import { generatePDF, generateExcel } from '../services/exportService.js';
 
 const router = express.Router();
 
-// Requer autenticação JWT
-router.use(authenticate);
+router.use(defaultUser);
 
 // Estatísticas gerais
 router.get('/overview', async (req, res, next) => {
   try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-
     const { period = '30' } = req.query;
-    const days = parseInt(period) || 30;
+    const days = parseInt(period);
     const startDate = subDays(new Date(), days);
     const endDate = new Date();
 
@@ -126,12 +120,8 @@ router.get('/overview', async (req, res, next) => {
 // Estatísticas por matéria
 router.get('/by-subject', async (req, res, next) => {
   try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-
     const { period = '30' } = req.query;
-    const days = parseInt(period) || 30;
+    const days = parseInt(period);
     const startDate = subDays(new Date(), days);
     const endDate = new Date();
 
@@ -181,10 +171,6 @@ router.get('/by-subject', async (req, res, next) => {
 // Constância diária (para gráfico tipo GitHub contributions)
 router.get('/constancy', async (req, res, next) => {
   try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-
     const { year } = req.query;
     const targetYear = year ? parseInt(year) : new Date().getFullYear();
 
@@ -217,12 +203,8 @@ router.get('/constancy', async (req, res, next) => {
 // Evolução temporal (para gráfico de linhas)
 router.get('/timeline', async (req, res, next) => {
   try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-
     const { period = '30', groupBy = 'day' } = req.query;
-    const days = parseInt(period) || 30;
+    const days = parseInt(period);
     const startDate = subDays(new Date(), days);
     const endDate = new Date();
 
@@ -272,233 +254,6 @@ router.get('/timeline', async (req, res, next) => {
     }));
 
     res.json(data);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Função auxiliar para buscar todos os dados de estatísticas
-const getAllStatisticsData = async (userId, period = '30') => {
-  const days = parseInt(period) || 30;
-  const startDate = subDays(new Date(), days);
-  const endDate = new Date();
-
-  // Overview
-  const totalTime = await prisma.studySession.aggregate({
-    where: {
-      userId,
-      date: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-    _sum: {
-      duration: true,
-    },
-  });
-
-  const totalQuestions = await prisma.studySession.aggregate({
-    where: {
-      userId,
-      date: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-    _sum: {
-      questions: true,
-    },
-  });
-
-  const totalCorrect = await prisma.studySession.aggregate({
-    where: {
-      userId,
-      date: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-    _sum: {
-      correctAnswers: true,
-    },
-  });
-
-  const accuracy = totalQuestions._sum.questions > 0
-    ? (totalCorrect._sum.correctAnswers || 0) / totalQuestions._sum.questions
-    : 0;
-
-  const daysStudied = await prisma.constancy.count({
-    where: {
-      userId,
-      date: {
-        gte: startDate,
-        lte: endDate,
-      },
-      studied: true,
-    },
-  });
-
-  // Streak atual
-  const constancies = await prisma.constancy.findMany({
-    where: {
-      userId,
-      date: {
-        lte: endDate,
-      },
-    },
-    orderBy: { date: 'desc' },
-  });
-
-  let streak = 0;
-  let currentDate = new Date(endDate);
-  currentDate.setHours(0, 0, 0, 0);
-
-  for (const constancy of constancies) {
-    const constancyDate = new Date(constancy.date);
-    constancyDate.setHours(0, 0, 0, 0);
-
-    if (constancyDate.getTime() === currentDate.getTime() && constancy.studied) {
-      streak++;
-      currentDate.setDate(currentDate.getDate() - 1);
-    } else if (constancyDate.getTime() < currentDate.getTime()) {
-      break;
-    } else {
-      break;
-    }
-  }
-
-  const overview = {
-    totalTime: totalTime._sum.duration || 0,
-    totalQuestions: totalQuestions._sum.questions || 0,
-    totalCorrect: totalCorrect._sum.correctAnswers || 0,
-    accuracy,
-    daysStudied,
-    streak,
-  };
-
-  // Por matéria
-  const subjects = await prisma.subject.findMany({
-    where: { userId },
-  });
-
-  const bySubject = await Promise.all(
-    subjects.map(async (subject) => {
-      const sessions = await prisma.studySession.findMany({
-        where: {
-          userId,
-          subjectId: subject.id,
-          date: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-      });
-
-      const totalTime = sessions.reduce((sum, s) => sum + s.duration, 0);
-      const totalQuestions = sessions.reduce((sum, s) => sum + (s.questions || 0), 0);
-      const totalCorrect = sessions.reduce((sum, s) => sum + (s.correctAnswers || 0), 0);
-      const accuracy = totalQuestions > 0 ? totalCorrect / totalQuestions : 0;
-
-      return {
-        subject: {
-          id: subject.id,
-          name: subject.name,
-          color: subject.color,
-        },
-        totalTime,
-        totalQuestions,
-        totalCorrect,
-        accuracy,
-        sessionsCount: sessions.length,
-      };
-    })
-  );
-
-  // Timeline
-  const sessions = await prisma.studySession.findMany({
-    where: {
-      userId,
-      date: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-    orderBy: { date: 'asc' },
-  });
-
-  const grouped = {};
-  sessions.forEach((session) => {
-    const date = new Date(session.date);
-    const key = format(date, 'yyyy-MM-dd');
-
-    if (!grouped[key]) {
-      grouped[key] = {
-        date: key,
-        totalTime: 0,
-        totalQuestions: 0,
-        totalCorrect: 0,
-        sessions: 0,
-      };
-    }
-
-    grouped[key].totalTime += session.duration;
-    grouped[key].totalQuestions += session.questions || 0;
-    grouped[key].totalCorrect += session.correctAnswers || 0;
-    grouped[key].sessions += 1;
-  });
-
-  const timeline = Object.values(grouped).map((item) => ({
-    ...item,
-    accuracy: item.totalQuestions > 0 ? item.totalCorrect / item.totalQuestions : 0,
-  }));
-
-  return {
-    overview,
-    bySubject,
-    timeline,
-    period: days,
-  };
-};
-
-// Exportar estatísticas em PDF
-router.get('/export/pdf', async (req, res, next) => {
-  try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-
-    const { period = '30' } = req.query;
-    const data = await getAllStatisticsData(req.userId, period);
-    
-    const pdfBuffer = await generatePDF(data);
-    
-    const filename = `relatorio-desempenho-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(pdfBuffer);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Exportar estatísticas em Excel
-router.get('/export/excel', async (req, res, next) => {
-  try {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Usuário não autenticado' });
-    }
-
-    const { period = '30' } = req.query;
-    const data = await getAllStatisticsData(req.userId, period);
-    
-    const excelBuffer = await generateExcel(data);
-    
-    const filename = `relatorio-desempenho-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
-    
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(excelBuffer);
   } catch (error) {
     next(error);
   }
