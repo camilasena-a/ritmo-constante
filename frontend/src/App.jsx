@@ -9,6 +9,7 @@ import Statistics from './pages/Statistics';
 import Constancy from './pages/Constancy';
 import ExamOutline from './pages/ExamOutline';
 import Settings from './pages/Settings';
+import Goals from './pages/Goals';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="statistics" element={<Statistics />} />
           <Route path="constancy" element={<Constancy />} />
           <Route path="exam-outline" element={<ExamOutline />} />
+          <Route path="goals" element={<Goals />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

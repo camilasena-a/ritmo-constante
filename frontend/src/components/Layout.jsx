@@ -9,6 +9,7 @@ const navigation = [
   { name: 'Estatísticas', href: '/statistics', icon: '📈' },
   { name: 'Constância', href: '/constancy', icon: '🔥' },
   { name: 'Edital', href: '/exam-outline', icon: '📋' },
+  { name: 'Metas', href: '/goals', icon: '🎯' },
   { name: 'Configurações', href: '/settings', icon: '⚙️' },
 ];
 
