@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import useThemeStore from '../store/themeStore';
+import useRevisionNotifications from '../hooks/useRevisionNotifications';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: '📊' },
@@ -9,13 +10,19 @@ const navigation = [
   { name: 'Estatísticas', href: '/statistics', icon: '📈' },
   { name: 'Constância', href: '/constancy', icon: '🔥' },
   { name: 'Edital', href: '/exam-outline', icon: '📋' },
-  { name: 'Metas', href: '/goals', icon: '🎯' },
   { name: 'Configurações', href: '/settings', icon: '⚙️' },
 ];
 
 export default function Layout() {
   const location = useLocation();
   const { isDark, toggleTheme } = useThemeStore();
+  
+  // Habilita notificações de revisões pendentes
+  useRevisionNotifications({
+    checkInterval: 30, // Verifica a cada 30 minutos
+    enabled: true,
+    hoursAhead: 24, // Verifica revisões nas próximas 24 horas
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

@@ -5,6 +5,7 @@ import { foldersApi } from '../api/folders';
 import Loading from '../components/Loading';
 import ConfirmModal from '../components/ConfirmModal';
 import useToastStore from '../store/toastStore';
+import notificationService from '../services/notificationService';
 
 export default function Settings() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -31,10 +32,28 @@ export default function Settings() {
     color: '#6366f1', 
     description: '',
   });
+  const [notificationPermission, setNotificationPermission] = useState('default');
 
   useEffect(() => {
     loadData();
+    checkNotificationPermission();
   }, []);
+
+  const checkNotificationPermission = () => {
+    if (notificationService.isSupported()) {
+      setNotificationPermission(notificationService.checkPermission());
+    }
+  };
+
+  const handleRequestNotificationPermission = async () => {
+    const permission = await notificationService.requestPermission();
+    setNotificationPermission(permission);
+    if (permission === 'granted') {
+      useToastStore.getState().success('Notificações habilitadas com sucesso!');
+    } else if (permission === 'denied') {
+      useToastStore.getState().error('Permissão de notificações negada. Você pode habilitar manualmente nas configurações do navegador.');
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -245,6 +264,63 @@ export default function Settings() {
           </button>
         )}
       </div>
+
+      {/* Configurações de Notificações */}
+      {!selectedFolderId && (
+        <div className="card">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Notificações</h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900 dark:text-gray-100">Notificações de Revisões</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Receba lembretes sobre revisões pendentes no navegador
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                {notificationService.isSupported() ? (
+                  <>
+                    {notificationPermission === 'granted' ? (
+                      <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+                        ✓ Habilitado
+                      </span>
+                    ) : notificationPermission === 'denied' ? (
+                      <span className="text-sm text-red-600 dark:text-red-400 font-medium">
+                        ✗ Negado
+                      </span>
+                    ) : (
+                      <button
+                        onClick={handleRequestNotificationPermission}
+                        className="btn btn-primary text-sm"
+                      >
+                        Habilitar Notificações
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Não suportado neste navegador
+                  </span>
+                )}
+              </div>
+            </div>
+            {notificationPermission === 'granted' && (
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <p className="text-sm text-green-800 dark:text-green-300">
+                  Você receberá notificações sobre revisões pendentes automaticamente.
+                </p>
+              </div>
+            )}
+            {notificationPermission === 'denied' && (
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                  Para habilitar notificações, acesse as configurações do navegador e permita notificações para este site.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Pastas - só mostra quando não há pasta selecionada */}
       {!selectedFolderId && (

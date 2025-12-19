@@ -7,6 +7,33 @@ const router = express.Router();
 
 router.use(defaultUser);
 
+// Contar revisões pendentes próximas (otimizado para notificações)
+router.get('/pending/count', async (req, res, next) => {
+  try {
+    const { hoursAhead = 24 } = req.query;
+    const endDate = new Date();
+    endDate.setHours(endDate.getHours() + parseInt(hoursAhead));
+    
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+
+    const count = await prisma.revision.count({
+      where: {
+        userId: req.userId,
+        completed: false,
+        scheduledDate: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+    });
+
+    res.json({ count });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Listar revisões pendentes
 router.get('/pending', async (req, res, next) => {
   try {
