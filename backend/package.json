@@ -10,7 +10,12 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "create:admin": "node scripts/createAdmin.js"
+    "create:admin": "node scripts/createAdmin.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
+    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest tests/unit",
+    "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest tests/integration"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
@@ -26,6 +31,9 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "prisma": "^5.7.1"
+    "prisma": "^5.7.1",
+    "@jest/globals": "^29.7.0",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
   }
 }

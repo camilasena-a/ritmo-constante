@@ -11,10 +11,19 @@
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "test": "npm run test:backend",
+    "test:backend": "cd backend && npm test",
+    "test:backend:unit": "cd backend && npm run test:unit",
+    "test:backend:integration": "cd backend && npm run test:integration",
+    "test:backend:coverage": "cd backend && npm run test:coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "@playwright/test": "^1.40.0"
   }
 }
 
