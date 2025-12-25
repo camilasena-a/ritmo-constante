@@ -221,3 +221,6 @@ Aumente o timeout no `playwright.config.js` ou verifique se os servidores estão
 
 Certifique-se de que o Jest está configurado corretamente para ES modules no `jest.config.js`.
 
+
+
+

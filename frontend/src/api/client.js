@@ -1,6 +1,7 @@
 import axios from 'axios';
 import useLoadingStore from '../store/loadingStore';
 import useToastStore from '../store/toastStore';
+import errorLogger from '../services/errorLogger';
 
 const api = axios.create({
   baseURL: '/api',
@@ -123,7 +124,10 @@ api.interceptors.request.use(
         }
       }
     } catch (error) {
-      console.error('Erro ao obter token do localStorage:', error);
+      errorLogger.logError(error, {
+        type: 'apiRequestInterceptor',
+        action: 'getToken',
+      });
     }
     return config;
   },
@@ -222,8 +226,26 @@ api.interceptors.response.use(
       useToastStore.getState().error(errorMessage);
     }
 
-    // Log de erros, mas não redireciona para login
-    console.error('Erro na API:', error);
+    // Log centralizado de erros
+    errorLogger.logError(error, {
+      type: 'apiError',
+      url: originalRequest?.url,
+      method: originalRequest?.method,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      responseData: error.response?.data,
+    });
+
+    // Adicionar breadcrumb para rastreamento
+    errorLogger.addBreadcrumb(
+      `Erro na API: ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`,
+      'api',
+      {
+        status: error.response?.status,
+        message: errorMessage,
+      }
+    );
+
     return Promise.reject(error);
   }
 );

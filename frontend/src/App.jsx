@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import StudyCycle from './pages/StudyCycle';
@@ -11,19 +12,77 @@ import Settings from './pages/Settings';
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Layout />}>
-        <Route index element={<Navigate to="/dashboard" />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="study-cycle" element={<StudyCycle />} />
-        <Route path="revisions" element={<Revisions />} />
-        <Route path="weekly-plan" element={<WeeklyPlan />} />
-        <Route path="statistics" element={<Statistics />} />
-        <Route path="constancy" element={<Constancy />} />
-        <Route path="exam-outline" element={<ExamOutline />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-    </Routes>
+    <ErrorBoundary name="App" showHomeButton>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Navigate to="/dashboard" />} />
+          <Route 
+            path="dashboard" 
+            element={
+              <ErrorBoundary name="Dashboard">
+                <Dashboard />
+              </ErrorBoundary>
+            } 
+          />
+          <Route 
+            path="study-cycle" 
+            element={
+              <ErrorBoundary name="StudyCycle">
+                <StudyCycle />
+              </ErrorBoundary>
+            } 
+          />
+          <Route 
+            path="revisions" 
+            element={
+              <ErrorBoundary name="Revisions">
+                <Revisions />
+              </ErrorBoundary>
+            } 
+          />
+          <Route 
+            path="weekly-plan" 
+            element={
+              <ErrorBoundary name="WeeklyPlan">
+                <WeeklyPlan />
+              </ErrorBoundary>
+            } 
+          />
+          <Route 
+            path="statistics" 
+            element={
+              <ErrorBoundary name="Statistics">
+                <Statistics />
+              </ErrorBoundary>
+            } 
+          />
+          <Route 
+            path="constancy" 
+            element={
+              <ErrorBoundary name="Constancy">
+                <Constancy />
+              </ErrorBoundary>
+            } 
+          />
+          <Route 
+            path="exam-outline" 
+            element={
+              <ErrorBoundary name="ExamOutline">
+                <ExamOutline />
+              </ErrorBoundary>
+            } 
+          />
+          <Route 
+            path="settings" 
+            element={
+              <ErrorBoundary name="Settings">
+                <Settings />
+              </ErrorBoundary>
+            } 
+          />
+        </Route>
+      </Routes>
+    </ErrorBoundary>
   );
 }
 
