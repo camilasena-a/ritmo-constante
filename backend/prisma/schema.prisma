@@ -48,6 +48,7 @@ model Subject {
   examOutlines ExamOutline[]
   statistics  Statistics[]
 
+  @@index([userId])
   @@map("subjects")
 }
 
@@ -69,6 +70,9 @@ model StudySession {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
+  @@index([userId, date])
+  @@index([userId, subjectId, date])
+  @@index([userId, type])
   @@map("study_sessions")
 }
 
@@ -88,6 +92,9 @@ model Revision {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
+  @@index([userId, scheduledDate])
+  @@index([userId, completed])
+  @@index([userId, subjectId])
   @@map("revisions")
 }
 
@@ -172,6 +179,8 @@ model Constancy {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
+  @@index([userId, date])
+  @@index([userId, studied])
   @@map("constancies")
 }
 
@@ -228,6 +237,8 @@ model Statistics {
   subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@unique([userId, subjectId, date])
+  @@index([userId, date])
+  @@index([userId, subjectId])
   @@map("statistics")
 }
 

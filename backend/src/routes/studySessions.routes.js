@@ -106,6 +106,9 @@ const syncStatistics = async (userId, subjectId, date) => {
         subjectId,
         date: statsDate,
       },
+      select: {
+        id: true,
+      },
     }).catch(() => null);
 
     if (existingStats) {
@@ -172,8 +175,26 @@ router.get('/', async (req, res, next) => {
       prisma.studySession.count({ where }),
       prisma.studySession.findMany({
         where,
-        include: {
-          subject: true,
+        select: {
+          id: true,
+          userId: true,
+          subjectId: true,
+          date: true,
+          duration: true,
+          type: true,
+          questions: true,
+          correctAnswers: true,
+          notes: true,
+          completed: true,
+          createdAt: true,
+          updatedAt: true,
+          subject: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
+            },
+          },
         },
         orderBy: { date: 'desc' },
         skip,
@@ -207,8 +228,27 @@ router.get('/:id', async (req, res, next) => {
         id: req.params.id,
         userId: req.userId,
       },
-      include: {
-        subject: true,
+      select: {
+        id: true,
+        userId: true,
+        subjectId: true,
+        date: true,
+        duration: true,
+        type: true,
+        questions: true,
+        correctAnswers: true,
+        notes: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            description: true,
+          },
+        },
       },
     });
 
@@ -233,6 +273,9 @@ router.post('/', async (req, res, next) => {
         id: data.subjectId,
         userId: req.userId,
       },
+      select: {
+        id: true,
+      },
     });
 
     if (!subject) {
@@ -245,8 +288,27 @@ router.post('/', async (req, res, next) => {
         userId: req.userId,
         date: data.date ? new Date(data.date) : new Date(),
       },
-      include: {
-        subject: true,
+      select: {
+        id: true,
+        userId: true,
+        subjectId: true,
+        date: true,
+        duration: true,
+        type: true,
+        questions: true,
+        correctAnswers: true,
+        notes: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            description: true,
+          },
+        },
       },
     });
 
@@ -329,6 +391,11 @@ router.put('/:id', async (req, res, next) => {
         id: req.params.id,
         userId: req.userId,
       },
+      select: {
+        id: true,
+        date: true,
+        subjectId: true,
+      },
     });
 
     if (!session) {
@@ -346,8 +413,27 @@ router.put('/:id', async (req, res, next) => {
         ...data,
         ...(data.date && { date: new Date(data.date) }),
       },
-      include: {
-        subject: true,
+      select: {
+        id: true,
+        userId: true,
+        subjectId: true,
+        date: true,
+        duration: true,
+        type: true,
+        questions: true,
+        correctAnswers: true,
+        notes: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            description: true,
+          },
+        },
       },
     });
 
@@ -371,6 +457,11 @@ router.delete('/:id', async (req, res, next) => {
       where: {
         id: req.params.id,
         userId: req.userId,
+      },
+      select: {
+        id: true,
+        subjectId: true,
+        date: true,
       },
     });
 
@@ -418,6 +509,12 @@ router.get('/stats/summary', async (req, res, next) => {
           gte: start,
           lte: end,
         },
+      },
+      select: {
+        duration: true,
+        questions: true,
+        correctAnswers: true,
+        type: true,
       },
     });
 

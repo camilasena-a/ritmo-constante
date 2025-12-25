@@ -82,6 +82,10 @@ router.get('/overview', async (req, res, next) => {
           lte: endDate,
         },
       },
+      select: {
+        date: true,
+        studied: true,
+      },
       orderBy: { date: 'desc' },
     });
 
@@ -125,42 +129,63 @@ router.get('/by-subject', async (req, res, next) => {
     const startDate = subDays(new Date(), days);
     const endDate = new Date();
 
-    const subjects = await prisma.subject.findMany({
-      where: { userId: req.userId },
+    // Buscar subjects e sessions em paralelo para evitar N+1 queries
+    const [subjects, allSessions] = await Promise.all([
+      prisma.subject.findMany({
+        where: { userId: req.userId },
+        select: {
+          id: true,
+          name: true,
+          color: true,
+        },
+      }),
+      prisma.studySession.findMany({
+        where: {
+          userId: req.userId,
+          date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        select: {
+          subjectId: true,
+          duration: true,
+          questions: true,
+          correctAnswers: true,
+        },
+      }),
+    ]);
+
+    // Agrupar sessions por subjectId
+    const sessionsBySubject = {};
+    allSessions.forEach((session) => {
+      if (!sessionsBySubject[session.subjectId]) {
+        sessionsBySubject[session.subjectId] = [];
+      }
+      sessionsBySubject[session.subjectId].push(session);
     });
 
-    const stats = await Promise.all(
-      subjects.map(async (subject) => {
-        const sessions = await prisma.studySession.findMany({
-          where: {
-            userId: req.userId,
-            subjectId: subject.id,
-            date: {
-              gte: startDate,
-              lte: endDate,
-            },
-          },
-        });
+    // Calcular estatísticas para cada matéria
+    const stats = subjects.map((subject) => {
+      const sessions = sessionsBySubject[subject.id] || [];
+      const totalTime = sessions.reduce((sum, s) => sum + s.duration, 0);
+      const totalQuestions = sessions.reduce((sum, s) => sum + (s.questions || 0), 0);
+      const totalCorrect = sessions.reduce((sum, s) => sum + (s.correctAnswers || 0), 0);
+      const accuracy = totalQuestions > 0 ? totalCorrect / totalQuestions : 0;
 
-        const totalTime = sessions.reduce((sum, s) => sum + s.duration, 0);
-        const totalQuestions = sessions.reduce((sum, s) => sum + (s.questions || 0), 0);
-        const totalCorrect = sessions.reduce((sum, s) => sum + (s.correctAnswers || 0), 0);
-        const accuracy = totalQuestions > 0 ? totalCorrect / totalQuestions : 0;
-
-        return {
-          subject: {
-            id: subject.id,
-            name: subject.name,
-            color: subject.color,
-          },
-          totalTime,
-          totalQuestions,
-          totalCorrect,
-          accuracy,
-          sessionsCount: sessions.length,
-        };
-      })
-    );
+      return {
+        subject: {
+          id: subject.id,
+          name: subject.name,
+          color: subject.color,
+        },
+        totalTime,
+        totalQuestions,
+        totalCorrect,
+        accuracy,
+        sessionsCount: sessions.length,
+      };
+    });
 
     res.json(stats);
   } catch (error) {
@@ -184,6 +209,11 @@ router.get('/constancy', async (req, res, next) => {
           gte: startDate,
           lte: endDate,
         },
+      },
+      select: {
+        date: true,
+        studied: true,
+        minutes: true,
       },
       orderBy: { date: 'asc' },
     });
@@ -215,6 +245,12 @@ router.get('/timeline', async (req, res, next) => {
           gte: startDate,
           lte: endDate,
         },
+      },
+      select: {
+        date: true,
+        duration: true,
+        questions: true,
+        correctAnswers: true,
       },
       orderBy: { date: 'asc' },
     });

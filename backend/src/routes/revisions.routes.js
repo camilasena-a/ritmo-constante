@@ -52,8 +52,24 @@ router.get('/pending', async (req, res, next) => {
 
     const revisions = await prisma.revision.findMany({
       where,
-      include: {
-        subject: true,
+      select: {
+        id: true,
+        userId: true,
+        subjectId: true,
+        studySessionId: true,
+        scheduledDate: true,
+        completedDate: true,
+        interval: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
       },
       orderBy: { scheduledDate: 'asc' },
     });
@@ -83,8 +99,24 @@ router.get('/', async (req, res, next) => {
 
     const revisions = await prisma.revision.findMany({
       where,
-      include: {
-        subject: true,
+      select: {
+        id: true,
+        userId: true,
+        subjectId: true,
+        studySessionId: true,
+        scheduledDate: true,
+        completedDate: true,
+        interval: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
       },
       orderBy: { scheduledDate: 'desc' },
     });
@@ -103,8 +135,24 @@ router.get('/:id', async (req, res, next) => {
         id: req.params.id,
         userId: req.userId,
       },
-      include: {
-        subject: true,
+      select: {
+        id: true,
+        userId: true,
+        subjectId: true,
+        studySessionId: true,
+        scheduledDate: true,
+        completedDate: true,
+        interval: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
       },
     });
 
@@ -126,6 +174,10 @@ router.post('/:id/complete', async (req, res, next) => {
         id: req.params.id,
         userId: req.userId,
       },
+      select: {
+        id: true,
+        completedDate: true,
+      },
     });
 
     if (!revision) {
@@ -138,8 +190,24 @@ router.post('/:id/complete', async (req, res, next) => {
         completed: true,
         completedDate: new Date(),
       },
-      include: {
-        subject: true,
+      select: {
+        id: true,
+        userId: true,
+        subjectId: true,
+        studySessionId: true,
+        scheduledDate: true,
+        completedDate: true,
+        interval: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
       },
     });
 
@@ -167,6 +235,9 @@ router.post('/', async (req, res, next) => {
         id: data.subjectId,
         userId: req.userId,
       },
+      select: {
+        id: true,
+      },
     });
 
     if (!subject) {
@@ -179,8 +250,24 @@ router.post('/', async (req, res, next) => {
         userId: req.userId,
         scheduledDate: new Date(data.scheduledDate),
       },
-      include: {
-        subject: true,
+      select: {
+        id: true,
+        userId: true,
+        subjectId: true,
+        studySessionId: true,
+        scheduledDate: true,
+        completedDate: true,
+        interval: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
       },
     });
 
@@ -200,6 +287,10 @@ router.put('/:id', async (req, res, next) => {
       where: {
         id: req.params.id,
         userId: req.userId,
+      },
+      select: {
+        id: true,
+        completedDate: true,
       },
     });
 
@@ -222,8 +313,24 @@ router.put('/:id', async (req, res, next) => {
         ...(data.scheduledDate && { scheduledDate: new Date(data.scheduledDate) }),
         ...(data.completed && !revision.completedDate && { completedDate: new Date() }),
       },
-      include: {
-        subject: true,
+      select: {
+        id: true,
+        userId: true,
+        subjectId: true,
+        studySessionId: true,
+        scheduledDate: true,
+        completedDate: true,
+        interval: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
       },
     });
 
@@ -243,6 +350,9 @@ router.delete('/:id', async (req, res, next) => {
       where: {
         id: req.params.id,
         userId: req.userId,
+      },
+      select: {
+        id: true,
       },
     });
 

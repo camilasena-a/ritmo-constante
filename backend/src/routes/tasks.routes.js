@@ -69,10 +69,28 @@ router.get('/', async (req, res, next) => {
       prisma.task.count({ where }),
       prisma.task.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          title: true,
+          description: true,
+          date: true,
+          startTime: true,
+          endTime: true,
+          color: true,
+          priority: true,
+          completed: true,
+          createdAt: true,
+          updatedAt: true,
           tags: {
-            include: {
-              tag: true,
+            select: {
+              tag: {
+                select: {
+                  id: true,
+                  name: true,
+                  color: true,
+                },
+              },
             },
           },
         },
@@ -117,10 +135,28 @@ router.get('/:id', async (req, res, next) => {
         id: req.params.id,
         userId: req.userId,
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        title: true,
+        description: true,
+        date: true,
+        startTime: true,
+        endTime: true,
+        color: true,
+        priority: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
         tags: {
-          include: {
-            tag: true,
+          select: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            },
           },
         },
       },
@@ -159,6 +195,9 @@ router.post('/', async (req, res, next) => {
           id: { in: tagIds },
           userId: req.userId,
         },
+        select: {
+          id: true,
+        },
       });
 
       if (userTags.length !== tagIds.length) {
@@ -177,10 +216,28 @@ router.post('/', async (req, res, next) => {
           })),
         } : undefined,
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        title: true,
+        description: true,
+        date: true,
+        startTime: true,
+        endTime: true,
+        color: true,
+        priority: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
         tags: {
-          include: {
-            tag: true,
+          select: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            },
           },
         },
       },
@@ -209,6 +266,9 @@ router.put('/:id', async (req, res, next) => {
         id: req.params.id,
         userId: req.userId,
       },
+      select: {
+        id: true,
+      },
     });
 
     if (!task) {
@@ -224,6 +284,9 @@ router.put('/:id', async (req, res, next) => {
         where: {
           id: { in: tagIds },
           userId: req.userId,
+        },
+        select: {
+          id: true,
         },
       });
 
@@ -247,10 +310,28 @@ router.put('/:id', async (req, res, next) => {
           },
         }),
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        title: true,
+        description: true,
+        date: true,
+        startTime: true,
+        endTime: true,
+        color: true,
+        priority: true,
+        completed: true,
+        createdAt: true,
+        updatedAt: true,
         tags: {
-          include: {
-            tag: true,
+          select: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            },
           },
         },
       },

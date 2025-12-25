@@ -25,6 +25,15 @@ router.get('/', async (req, res, next) => {
 
     const subjects = await prisma.subject.findMany({
       where: { userId: req.userId },
+      select: {
+        id: true,
+        userId: true,
+        name: true,
+        color: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -45,7 +54,14 @@ router.get('/:id', async (req, res, next) => {
         id: req.params.id,
         userId: req.userId,
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        name: true,
+        color: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
         _count: {
           select: {
             studySessions: true,
@@ -96,6 +112,9 @@ router.put('/:id', async (req, res, next) => {
         id: req.params.id,
         userId: req.userId,
       },
+      select: {
+        id: true,
+      },
     });
 
     if (!subject) {
@@ -123,6 +142,9 @@ router.delete('/:id', async (req, res, next) => {
       where: {
         id: req.params.id,
         userId: req.userId,
+      },
+      select: {
+        id: true,
       },
     });
 
