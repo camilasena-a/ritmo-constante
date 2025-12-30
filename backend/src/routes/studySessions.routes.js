@@ -3,29 +3,67 @@ import prisma from '../config/database.js';
 import { defaultUser } from '../middleware/defaultUser.js';
 import { z } from 'zod';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { sanitizeStringWithMaxLength, sanitizeDate, sanitizeUUID } from '../utils/sanitize.js';
 
 const router = express.Router();
 
 router.use(defaultUser);
 
+// Schema de validação para criação/atualização de sessões com sanitização integrada
 const sessionSchema = z.object({
-  subjectId: z.string().uuid(),
-  date: z.string().datetime().optional(),
-  duration: z.number().int().min(1, 'Duração deve ser pelo menos 1 minuto'),
-  type: z.enum(['study', 'review', 'questions']),
+  subjectId: z
+    .string({
+      required_error: 'ID da matéria é obrigatório',
+    })
+    .uuid('ID da matéria deve ser um UUID válido')
+    .transform((val) => sanitizeUUID(val) || val), // Sanitiza UUID
+  date: z
+    .union([z.string().datetime(), z.date(), z.string()])
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      const sanitized = sanitizeDate(val);
+      return sanitized ? sanitized.toISOString() : undefined;
+    })
+    .refine((val) => {
+      if (!val) return true;
+      const sanitized = sanitizeDate(val);
+      return sanitized !== null;
+    }, {
+      message: 'Data inválida. Use o formato ISO 8601 (YYYY-MM-DDTHH:mm:ss.sssZ)',
+    }),
+  duration: z
+    .number({
+      required_error: 'Duração é obrigatória',
+      invalid_type_error: 'Duração deve ser um número',
+    })
+    .int('Duração deve ser um número inteiro')
+    .min(1, 'Duração deve ser pelo menos 1 minuto')
+    .max(1440, 'Duração não pode ser maior que 1440 minutos (24 horas)'),
+  type: z.enum(['study', 'review', 'questions'], {
+    errorMap: () => ({ message: 'Tipo deve ser: study, review ou questions' }),
+  }),
   questions: z
     .number({
       required_error: 'Informe o total de questões resolvidas',
+      invalid_type_error: 'Questões deve ser um número',
     })
-    .int()
-    .min(0, 'Questões deve ser pelo menos 0'),
+    .int('Questões deve ser um número inteiro')
+    .min(0, 'Questões deve ser pelo menos 0')
+    .max(100000, 'Questões não pode ser maior que 100000'),
   correctAnswers: z
     .number({
       required_error: 'Informe o total de acertos',
+      invalid_type_error: 'Acertos deve ser um número',
     })
-    .int()
-    .min(0, 'Acertos deve ser pelo menos 0'),
-  notes: z.string().optional(),
+    .int('Acertos deve ser um número inteiro')
+    .min(0, 'Acertos deve ser pelo menos 0')
+    .max(100000, 'Acertos não pode ser maior que 100000'),
+  notes: z
+    .string()
+    .max(5000, 'Notas não podem ter mais de 5000 caracteres')
+    .optional()
+    .transform((val) => (val ? sanitizeStringWithMaxLength(val, 5000) : undefined)),
   completed: z.boolean().optional(),
 }).superRefine((data, ctx) => {
   if (data.correctAnswers > data.questions) {
@@ -43,6 +81,75 @@ const sessionSchema = z.object({
       path: ['questions'],
     });
   }
+});
+
+// Schema para validação de query params na listagem
+const listQuerySchema = z.object({
+  subjectId: z
+    .string()
+    .uuid('ID da matéria deve ser um UUID válido')
+    .optional()
+    .transform((val) => (val ? sanitizeUUID(val) || val : undefined)),
+  startDate: z
+    .string()
+    .datetime('Data inicial inválida. Use o formato ISO 8601')
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      const sanitized = sanitizeDate(val);
+      return sanitized ? sanitized.toISOString() : undefined;
+    }),
+  endDate: z
+    .string()
+    .datetime('Data final inválida. Use o formato ISO 8601')
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      const sanitized = sanitizeDate(val);
+      return sanitized ? sanitized.toISOString() : undefined;
+    }),
+  type: z.enum(['study', 'review', 'questions']).optional(),
+  page: z
+    .string()
+    .optional()
+    .default('1')
+    .transform((val) => {
+      const num = parseInt(val, 10);
+      return isNaN(num) || num < 1 ? 1 : num;
+    }),
+  limit: z
+    .string()
+    .optional()
+    .default('20')
+    .transform((val) => {
+      const num = parseInt(val, 10);
+      if (isNaN(num) || num < 1) return 20;
+      return num > 100 ? 100 : num; // Limita a 100 por página
+    }),
+}).refine((data) => {
+  // Se ambas as datas forem fornecidas, validar que startDate <= endDate
+  if (data.startDate && data.endDate) {
+    const start = new Date(data.startDate);
+    const end = new Date(data.endDate);
+    return start <= end;
+  }
+  return true;
+}, {
+  message: 'Data inicial deve ser anterior ou igual à data final',
+  path: ['startDate'],
+});
+
+// Schema para validação de route params (UUID)
+const uuidParamSchema = z.object({
+  id: z
+    .string()
+    .uuid('ID deve ser um UUID válido')
+    .transform((val) => sanitizeUUID(val) || val),
+});
+
+// Schema para validação de query params nas estatísticas
+const statsQuerySchema = z.object({
+  period: z.enum(['day', 'week', 'month']).optional().default('week'),
 });
 
 const normalizeDate = (date) => {
@@ -147,16 +254,11 @@ router.get('/', async (req, res, next) => {
       return res.status(401).json({ error: 'Usuário não autenticado' });
     }
 
-    const { subjectId, startDate, endDate, type, page = '1', limit = '20' } = req.query;
+    // Validar e sanitizar query params
+    const queryParams = listQuerySchema.parse(req.query);
+    const { subjectId, startDate, endDate, type, page, limit } = queryParams;
 
-    const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
-    const skip = (pageNum - 1) * limitNum;
-
-    // Validar parâmetros de paginação
-    if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
-      return res.status(400).json({ error: 'Parâmetros de paginação inválidos' });
-    }
+    const skip = (page - 1) * limit;
 
     const where = {
       userId: req.userId,
@@ -198,21 +300,21 @@ router.get('/', async (req, res, next) => {
         },
         orderBy: { date: 'desc' },
         skip,
-        take: limitNum,
+        take: limit,
       }),
     ]);
 
-    const totalPages = Math.ceil(total / limitNum);
+    const totalPages = Math.ceil(total / limit);
 
     res.json({
       data: sessions,
       pagination: {
-        page: pageNum,
-        limit: limitNum,
+        page,
+        limit,
         total,
         totalPages,
-        hasNext: pageNum < totalPages,
-        hasPrev: pageNum > 1,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
       },
     });
   } catch (error) {
@@ -223,9 +325,12 @@ router.get('/', async (req, res, next) => {
 // Obter sessão específica
 router.get('/:id', async (req, res, next) => {
   try {
+    // Validar e sanitizar route param
+    const { id } = uuidParamSchema.parse(req.params);
+
     const session = await prisma.studySession.findFirst({
       where: {
-        id: req.params.id,
+        id,
         userId: req.userId,
       },
       select: {
@@ -265,6 +370,7 @@ router.get('/:id', async (req, res, next) => {
 // Criar sessão
 router.post('/', async (req, res, next) => {
   try {
+    // Validar e sanitizar body
     const data = sessionSchema.parse(req.body);
 
     // Verificar se a matéria pertence ao usuário
@@ -282,11 +388,17 @@ router.post('/', async (req, res, next) => {
       return res.status(404).json({ error: 'Matéria não encontrada' });
     }
 
+    // Sanitizar data antes de criar
+    const sessionDate = data.date ? sanitizeDate(data.date) : new Date();
+    if (!sessionDate) {
+      return res.status(400).json({ error: 'Data inválida' });
+    }
+
     const session = await prisma.studySession.create({
       data: {
         ...data,
         userId: req.userId,
-        date: data.date ? new Date(data.date) : new Date(),
+        date: sessionDate,
       },
       select: {
         id: true,
@@ -313,7 +425,6 @@ router.post('/', async (req, res, next) => {
     });
 
     // Atualizar constância
-    const sessionDate = new Date(session.date);
     const dateOnly = normalizeDate(sessionDate);
 
     if (!dateOnly || isNaN(dateOnly.getTime())) {
@@ -386,9 +497,12 @@ router.post('/', async (req, res, next) => {
 // Atualizar sessão
 router.put('/:id', async (req, res, next) => {
   try {
+    // Validar e sanitizar route param
+    const { id } = uuidParamSchema.parse(req.params);
+
     const session = await prisma.studySession.findFirst({
       where: {
-        id: req.params.id,
+        id,
         userId: req.userId,
       },
       select: {
@@ -402,17 +516,42 @@ router.put('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Sessão não encontrada' });
     }
 
+    // Validar e sanitizar body (parcial para atualização)
     const data = sessionSchema.partial().parse(req.body);
 
     const originalDate = session.date;
     const originalSubjectId = session.subjectId;
 
+    // Sanitizar data se fornecida
+    const updateData = { ...data };
+    if (data.date) {
+      const sanitizedDate = sanitizeDate(data.date);
+      if (!sanitizedDate) {
+        return res.status(400).json({ error: 'Data inválida' });
+      }
+      updateData.date = sanitizedDate;
+    }
+
+    // Se subjectId foi atualizado, verificar se pertence ao usuário
+    if (data.subjectId) {
+      const subject = await prisma.subject.findFirst({
+        where: {
+          id: data.subjectId,
+          userId: req.userId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!subject) {
+        return res.status(404).json({ error: 'Matéria não encontrada' });
+      }
+    }
+
     const updated = await prisma.studySession.update({
-      where: { id: req.params.id },
-      data: {
-        ...data,
-        ...(data.date && { date: new Date(data.date) }),
-      },
+      where: { id },
+      data: updateData,
       select: {
         id: true,
         userId: true,
@@ -453,9 +592,12 @@ router.put('/:id', async (req, res, next) => {
 // Deletar sessão
 router.delete('/:id', async (req, res, next) => {
   try {
+    // Validar e sanitizar route param
+    const { id } = uuidParamSchema.parse(req.params);
+
     const session = await prisma.studySession.findFirst({
       where: {
-        id: req.params.id,
+        id,
         userId: req.userId,
       },
       select: {
@@ -470,7 +612,7 @@ router.delete('/:id', async (req, res, next) => {
     }
 
     await prisma.studySession.delete({
-      where: { id: req.params.id },
+      where: { id },
     });
 
     await syncStatistics(req.userId, session.subjectId, session.date);
@@ -484,7 +626,8 @@ router.delete('/:id', async (req, res, next) => {
 // Estatísticas de sessões
 router.get('/stats/summary', async (req, res, next) => {
   try {
-    const { period = 'week' } = req.query;
+    // Validar e sanitizar query params
+    const { period } = statsQuerySchema.parse(req.query);
     const now = new Date();
     let start, end;
 
@@ -497,6 +640,7 @@ router.get('/stats/summary', async (req, res, next) => {
         start = startOfMonth(now);
         end = endOfMonth(now);
         break;
+      case 'day':
       default:
         start = startOfDay(now);
         end = endOfDay(now);

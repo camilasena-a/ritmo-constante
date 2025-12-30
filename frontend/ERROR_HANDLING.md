@@ -177,3 +177,4 @@ Com o Sentry configurado, você terá acesso a:
 - **Desenvolvimento**: Erros são logados no console e detalhes são exibidos no Error Boundary
 - **Produção**: Erros são enviados para Sentry (se configurado) e UI amigável é exibida ao usuário
 
+
