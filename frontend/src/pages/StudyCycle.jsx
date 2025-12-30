@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { studyCyclesApi } from '../api/studyCycles';
-import { subjectsApi } from '../api/subjects';
+import { useSubjects } from '../hooks/useSubjects';
 import { Skeleton, SkeletonList } from '../components/Skeleton';
 
 export default function StudyCycle() {
   const [cycles, setCycles] = useState([]);
   const [activeCycle, setActiveCycle] = useState(null);
-  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', items: [] });
+
+  // Hook de cache para matérias
+  const { data: subjects = [] } = useSubjects();
 
   useEffect(() => {
     loadData();
@@ -17,13 +19,9 @@ export default function StudyCycle() {
 
   const loadData = async () => {
     try {
-      const [cyclesData, subjectsData] = await Promise.all([
-        studyCyclesApi.getAll(),
-        subjectsApi.getAll(),
-      ]);
+      const cyclesData = await studyCyclesApi.getAll();
       setCycles(cyclesData);
       setActiveCycle(cyclesData.find(c => c.active) || null);
-      setSubjects(subjectsData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {

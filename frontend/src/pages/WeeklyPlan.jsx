@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { weeklyPlansApi } from '../api/weeklyPlans';
-import { subjectsApi } from '../api/subjects';
+import { useSubjects } from '../hooks/useSubjects';
 import { SkeletonCalendar } from '../components/Skeleton';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function WeeklyPlan() {
   const [plan, setPlan] = useState(null);
-  const [subjects, setSubjects] = useState([]);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [loading, setLoading] = useState(true);
+
+  // Hook de cache para matérias
+  const { data: subjects = [] } = useSubjects();
 
   useEffect(() => {
     loadData();
@@ -17,12 +19,8 @@ export default function WeeklyPlan() {
 
   const loadData = async () => {
     try {
-      const [planData, subjectsData] = await Promise.all([
-        weeklyPlansApi.getByWeek(currentWeek.toISOString()),
-        subjectsApi.getAll(),
-      ]);
+      const planData = await weeklyPlansApi.getByWeek(currentWeek.toISOString());
       setPlan(planData);
-      setSubjects(subjectsData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {

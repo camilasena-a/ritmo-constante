@@ -1,18 +1,28 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { subjectsApi } from '../api/subjects';
-import { foldersApi } from '../api/folders';
+import { useSubjects, useCreateSubject, useUpdateSubject, useDeleteSubject } from '../hooks/useSubjects';
+import { useFolders, useCreateFolder, useUpdateFolder, useDeleteFolder } from '../hooks/useFolders';
 import Loading from '../components/Loading';
 import ConfirmModal from '../components/ConfirmModal';
-import useToastStore from '../store/toastStore';
 import notificationService from '../services/notificationService';
 
 export default function Settings() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [subjects, setSubjects] = useState([]);
-  const [folders, setFolders] = useState([]);
-  const [loading, setLoading] = useState(true);
   const selectedFolderId = searchParams.get('folder');
+  
+  // Hooks de cache para matérias e pastas
+  const { data: subjects = [], isLoading: subjectsLoading } = useSubjects();
+  const { data: folders = [], isLoading: foldersLoading } = useFolders();
+  
+  // Mutations
+  const createSubject = useCreateSubject();
+  const updateSubject = useUpdateSubject();
+  const deleteSubject = useDeleteSubject();
+  const createFolder = useCreateFolder();
+  const updateFolder = useUpdateFolder();
+  const deleteFolder = useDeleteFolder();
+  
+  const loading = subjectsLoading || foldersLoading;
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [showDeleteSubjectModal, setShowDeleteSubjectModal] = useState(false);
@@ -35,7 +45,6 @@ export default function Settings() {
   const [notificationPermission, setNotificationPermission] = useState('default');
 
   useEffect(() => {
-    loadData();
     checkNotificationPermission();
   }, []);
 
@@ -48,67 +57,35 @@ export default function Settings() {
   const handleRequestNotificationPermission = async () => {
     const permission = await notificationService.requestPermission();
     setNotificationPermission(permission);
-    if (permission === 'granted') {
-      useToastStore.getState().success('Notificações habilitadas com sucesso!');
-    } else if (permission === 'denied') {
-      useToastStore.getState().error('Permissão de notificações negada. Você pode habilitar manualmente nas configurações do navegador.');
-    }
-  };
-
-  const loadData = async () => {
-    try {
-      const [subjectsData, foldersData] = await Promise.all([
-        subjectsApi.getAll(),
-        foldersApi.getAll(),
-      ]);
-      setSubjects(subjectsData);
-      setFolders(foldersData);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleCreateSubject = async () => {
     try {
       if (editingSubject) {
-        await subjectsApi.update(editingSubject.id, subjectForm);
-        useToastStore.getState().success('Matéria atualizada com sucesso!');
+        await updateSubject.mutateAsync({ id: editingSubject.id, data: subjectForm });
       } else {
-        await subjectsApi.create(subjectForm);
-        useToastStore.getState().success('Matéria criada com sucesso!');
+        await createSubject.mutateAsync(subjectForm);
       }
-      await loadData();
       setShowSubjectModal(false);
       setEditingSubject(null);
       setSubjectForm({ name: '', color: '#6366f1', description: '', folderId: null });
-      // Disparar evento para atualizar o Layout
-      window.dispatchEvent(new Event('subjectsUpdated'));
     } catch (error) {
       console.error('Erro ao salvar matéria:', error);
-      // O toast de erro já será exibido pelo client.js
     }
   };
 
   const handleCreateFolder = async () => {
     try {
       if (editingFolder) {
-        await foldersApi.update(editingFolder.id, folderForm);
-        useToastStore.getState().success('Pasta atualizada com sucesso!');
+        await updateFolder.mutateAsync({ id: editingFolder.id, data: folderForm });
       } else {
-        await foldersApi.create(folderForm);
-        useToastStore.getState().success('Pasta criada com sucesso!');
+        await createFolder.mutateAsync(folderForm);
       }
-      await loadData();
       setShowFolderModal(false);
       setEditingFolder(null);
       setFolderForm({ name: '', color: '#6366f1', description: '' });
-      // Disparar evento para atualizar o Layout
-      window.dispatchEvent(new Event('foldersUpdated'));
     } catch (error) {
       console.error('Erro ao salvar pasta:', error);
-      // O toast de erro já será exibido pelo client.js
     }
   };
 
@@ -141,15 +118,10 @@ export default function Settings() {
   const handleDeleteSubject = async () => {
     if (!subjectToDelete) return;
     try {
-      await subjectsApi.delete(subjectToDelete);
-      useToastStore.getState().success('Matéria deletada com sucesso!');
-      await loadData();
-      // Disparar evento para atualizar o Layout
-      window.dispatchEvent(new Event('subjectsUpdated'));
+      await deleteSubject.mutateAsync(subjectToDelete);
       setSubjectToDelete(null);
     } catch (error) {
       console.error('Erro ao deletar matéria:', error);
-      // O toast de erro já será exibido pelo client.js
     }
   };
 
@@ -161,28 +133,18 @@ export default function Settings() {
   const handleDeleteFolder = async () => {
     if (!folderToDelete) return;
     try {
-      await foldersApi.delete(folderToDelete);
-      useToastStore.getState().success('Pasta deletada com sucesso!');
-      await loadData();
-      // Disparar evento para atualizar o Layout
-      window.dispatchEvent(new Event('foldersUpdated'));
+      await deleteFolder.mutateAsync(folderToDelete);
       setFolderToDelete(null);
     } catch (error) {
       console.error('Erro ao deletar pasta:', error);
-      // O toast de erro já será exibido pelo client.js
     }
   };
 
   const handleMoveSubject = async (subjectId, newFolderId) => {
     try {
-      await subjectsApi.update(subjectId, { folderId: newFolderId || null });
-      useToastStore.getState().success('Matéria movida com sucesso!');
-      await loadData();
-      // Disparar evento para atualizar o Layout
-      window.dispatchEvent(new Event('subjectsUpdated'));
+      await updateSubject.mutateAsync({ id: subjectId, data: { folderId: newFolderId || null } });
     } catch (error) {
       console.error('Erro ao mover matéria:', error);
-      // O toast de erro já será exibido pelo client.js
     }
   };
 

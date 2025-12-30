@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { studySessionsApi } from '../api/studySessions';
-import { subjectsApi } from '../api/subjects';
-import { foldersApi } from '../api/folders';
+import { useSubjects } from '../hooks/useSubjects';
+import { useFolders } from '../hooks/useFolders';
 import useToastStore from '../store/toastStore';
 
 export default function StudySessionForm({ onSuccess, onCancel }) {
-  const [subjects, setSubjects] = useState([]);
-  const [folders, setFolders] = useState([]);
+  // Hooks de cache para matérias e pastas
+  const { data: subjects = [] } = useSubjects();
+  const { data: folders = [] } = useFolders();
+  
   const [selectedFolderId, setSelectedFolderId] = useState('');
   const [formData, setFormData] = useState({
     subjectId: '',
@@ -30,25 +32,12 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
     return subjects.filter(s => s.folderId === selectedFolderId);
   };
 
-  const loadData = async () => {
-    try {
-      const [subjectsData, foldersData] = await Promise.all([
-        subjectsApi.getAll(),
-        foldersApi.getAll(),
-      ]);
-      setSubjects(subjectsData);
-      setFolders(foldersData);
-      if (subjectsData.length > 0) {
-        setFormData(prev => ({ ...prev, subjectId: subjectsData[0].id }));
-      }
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    }
-  };
-
   useEffect(() => {
-    loadData();
-  }, []);
+    // Selecionar primeira matéria quando dados carregarem
+    if (subjects.length > 0 && !formData.subjectId) {
+      setFormData(prev => ({ ...prev, subjectId: subjects[0].id }));
+    }
+  }, [subjects]);
 
   useEffect(() => {
     // Resetar matéria selecionada quando a pasta mudar

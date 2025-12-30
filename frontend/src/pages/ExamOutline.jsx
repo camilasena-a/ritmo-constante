@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { examOutlinesApi } from '../api/examOutlines';
-import { subjectsApi } from '../api/subjects';
+import { useSubjects } from '../hooks/useSubjects';
 import Loading from '../components/Loading';
 
 export default function ExamOutline() {
   const [outlines, setOutlines] = useState([]);
   const [selectedOutline, setSelectedOutline] = useState(null);
-  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({ subjectId: '', name: '', description: '' });
+
+  // Hook de cache para matérias
+  const { data: subjects = [] } = useSubjects();
 
   useEffect(() => {
     loadData();
@@ -17,12 +19,8 @@ export default function ExamOutline() {
 
   const loadData = async () => {
     try {
-      const [outlinesData, subjectsData] = await Promise.all([
-        examOutlinesApi.getAll(),
-        subjectsApi.getAll(),
-      ]);
+      const outlinesData = await examOutlinesApi.getAll();
       setOutlines(outlinesData);
-      setSubjects(subjectsData);
       if (outlinesData.length > 0 && !selectedOutline) {
         setSelectedOutline(outlinesData[0]);
       }
