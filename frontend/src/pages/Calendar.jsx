@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { tasksApi } from '../api/tasks';
 import { tagsApi } from '../api/tags';
 import Loading from '../components/Loading';
@@ -24,28 +24,20 @@ export default function Calendar() {
   const [tasksFilter, setTasksFilter] = useState({ completed: '', tagIds: [] });
   const [availableTags, setAvailableTags] = useState([]);
 
-  useEffect(() => {
-    loadTags();
-  }, []);
-
-  useEffect(() => {
-    loadTasks();
-  }, [currentMonth, tasksFilter.tagIds.length]);
-
-  useEffect(() => {
-    loadTasksList();
-  }, [tasksPage, tasksFilter, currentMonth]);
-
-  const loadTags = async () => {
+  const loadTags = useCallback(async () => {
     try {
       const tags = await tagsApi.getAll();
       setAvailableTags(tags);
     } catch (error) {
       console.error('Erro ao carregar tags:', error);
     }
-  };
+  }, []);
 
-  const loadTasks = async () => {
+  useEffect(() => {
+    loadTags();
+  }, [loadTags]);
+
+  const loadTasks = useCallback(async () => {
     try {
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
@@ -69,9 +61,13 @@ export default function Calendar() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentMonth, tasksFilter.tagIds]);
 
-  const loadTasksList = async () => {
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
+  const loadTasksList = useCallback(async () => {
     setTasksLoading(true);
     try {
       const monthStart = startOfMonth(currentMonth);
@@ -100,7 +96,11 @@ export default function Calendar() {
     } finally {
       setTasksLoading(false);
     }
-  };
+  }, [tasksPage, tasksFilter, currentMonth]);
+
+  useEffect(() => {
+    loadTasksList();
+  }, [loadTasksList]);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);

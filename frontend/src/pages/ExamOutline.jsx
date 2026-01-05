@@ -1,35 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { examOutlinesApi } from '../api/examOutlines';
-import { useSubjects } from '../hooks/useSubjects';
+import { subjectsApi } from '../api/subjects';
 import Loading from '../components/Loading';
 
 export default function ExamOutline() {
   const [outlines, setOutlines] = useState([]);
   const [selectedOutline, setSelectedOutline] = useState(null);
+  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({ subjectId: '', name: '', description: '' });
 
-  // Hook de cache para matérias
-  const { data: subjects = [] } = useSubjects();
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const outlinesData = await examOutlinesApi.getAll();
+      const [outlinesData, subjectsData] = await Promise.all([
+        examOutlinesApi.getAll(),
+        subjectsApi.getAll(),
+      ]);
       setOutlines(outlinesData);
-      if (outlinesData.length > 0 && !selectedOutline) {
-        setSelectedOutline(outlinesData[0]);
-      }
+      setSubjects(subjectsData);
+      setSelectedOutline(prev => {
+        if (outlinesData.length > 0 && !prev) {
+          return outlinesData[0];
+        }
+        return prev;
+      });
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const loadOutlineDetails = async (id) => {
     try {

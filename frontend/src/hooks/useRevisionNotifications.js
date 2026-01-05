@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { revisionsApi } from '../api/revisions';
 import notificationService from '../services/notificationService';
 import { useAuthStore } from '../store/authStore';
@@ -39,7 +39,7 @@ export function useRevisionNotifications(options = {}) {
   }, [enabled, isAuthenticated]);
 
   // Verifica revisões pendentes
-  const checkPendingRevisions = async () => {
+  const checkPendingRevisions = useCallback(async () => {
     if (!enabled || !isAuthenticated) return;
     if (!notificationService.hasPermission()) return;
 
@@ -102,7 +102,7 @@ export function useRevisionNotifications(options = {}) {
     } catch (error) {
       console.error('Erro ao verificar revisões pendentes:', error);
     }
-  };
+  }, [enabled, isAuthenticated, hoursAhead]);
 
   // Configura verificação periódica
   useEffect(() => {
@@ -127,7 +127,7 @@ export function useRevisionNotifications(options = {}) {
         intervalRef.current = null;
       }
     };
-  }, [enabled, isAuthenticated, checkInterval, hoursAhead]);
+  }, [enabled, isAuthenticated, checkInterval, checkPendingRevisions]);
 
   // Limpa intervalo ao desmontar
   useEffect(() => {
@@ -147,6 +147,7 @@ export function useRevisionNotifications(options = {}) {
 }
 
 export default useRevisionNotifications;
+
 
 
 

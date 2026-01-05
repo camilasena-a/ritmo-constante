@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { statisticsApi } from '../api/statistics';
 import { studySessionsApi } from '../api/studySessions';
 import { Skeleton, SkeletonGrid, SkeletonChart, SkeletonTable, SkeletonList } from '../components/Skeleton';
@@ -47,15 +47,7 @@ export default function Statistics() {
   const [showDeleteSessionModal, setShowDeleteSessionModal] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState(null);
 
-  useEffect(() => {
-    loadData();
-  }, [period]);
-
-  useEffect(() => {
-    loadSessions();
-  }, [sessionsPage, sessionsFilter, period]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [overviewData, bySubjectData, timelineData] = await Promise.all([
         statisticsApi.getOverview(period),
@@ -70,9 +62,13 @@ export default function Statistics() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
 
-  const loadSessions = async () => {
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const loadSessions = useCallback(async () => {
     setSessionsLoading(true);
     try {
       const days = parseInt(period);
@@ -102,7 +98,11 @@ export default function Statistics() {
     } finally {
       setSessionsLoading(false);
     }
-  };
+  }, [sessionsPage, sessionsFilter, period]);
+
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
 
   const formatTime = (minutes) => {
     const hours = Math.floor(minutes / 60);

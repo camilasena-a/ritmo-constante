@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { tasksApi } from '../api/tasks';
 import { tagsApi } from '../api/tags';
 import { format } from 'date-fns';
@@ -22,9 +22,7 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
 
-  useEffect(() => {
-    loadTags();
-  }, []);
+  const loadTags = useCallback(async () => {
 
   useEffect(() => {
     if (task) {
@@ -53,7 +51,11 @@ export default function TaskForm({ task, initialDate, onSuccess, onCancel }) {
     } finally {
       setLoadingTags(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadTags();
+  }, [loadTags]);
 
   const validateField = (field, value) => {
     const errors = { ...fieldErrors };

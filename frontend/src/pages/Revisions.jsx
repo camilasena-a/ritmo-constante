@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { revisionsApi } from '../api/revisions';
 import Loading from '../components/Loading';
 import Pagination from '../components/Pagination';
@@ -16,11 +16,7 @@ export default function Revisions() {
     setPage(1); // Resetar página ao mudar filtro
   }, [filter]);
 
-  useEffect(() => {
-    loadRevisions();
-  }, [filter, page]);
-
-  const loadRevisions = async () => {
+  const loadRevisions = useCallback(async () => {
     setLoading(true);
     try {
       let data;
@@ -47,7 +43,11 @@ export default function Revisions() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter, page]);
+
+  useEffect(() => {
+    loadRevisions();
+  }, [loadRevisions]);
 
   const handleComplete = async (id) => {
     try {

@@ -1,32 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { weeklyPlansApi } from '../api/weeklyPlans';
-import { useSubjects } from '../hooks/useSubjects';
-import { SkeletonCalendar } from '../components/Skeleton';
+import { subjectsApi } from '../api/subjects';
+import Loading from '../components/Loading';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function WeeklyPlan() {
   const [plan, setPlan] = useState(null);
+  const [subjects, setSubjects] = useState([]);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [loading, setLoading] = useState(true);
 
-  // Hook de cache para matérias
-  const { data: subjects = [] } = useSubjects();
-
-  useEffect(() => {
-    loadData();
-  }, [currentWeek]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const planData = await weeklyPlansApi.getByWeek(currentWeek.toISOString());
+      const [planData, subjectsData] = await Promise.all([
+        weeklyPlansApi.getByWeek(currentWeek.toISOString()),
+        subjectsApi.getAll(),
+      ]);
       setPlan(planData);
+      setSubjects(subjectsData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentWeek]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
@@ -44,12 +46,14 @@ export default function WeeklyPlan() {
     });
   };
 
+  if (loading) return <Loading />;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Quadro Semanal</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">Planejamento semanal de estudos</p>
+          <h1 className="text-3xl font-bold text-gray-900">Quadro Semanal</h1>
+          <p className="mt-2 text-gray-600">Planejamento semanal de estudos</p>
         </div>
         <div className="flex items-center space-x-2">
           <button
@@ -73,10 +77,7 @@ export default function WeeklyPlan() {
         </div>
       </div>
 
-      {loading ? (
-        <SkeletonCalendar />
-      ) : (
-        <div className="card">
+      <div className="card">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-gray-900">
             {format(weekStart, "dd 'de' MMMM", { locale: ptBR })} - {format(weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
@@ -133,7 +134,6 @@ export default function WeeklyPlan() {
           })}
         </div>
       </div>
-      )}
     </div>
   );
 }

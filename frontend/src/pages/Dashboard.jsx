@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { statisticsApi } from '../api/statistics';
 import { studySessionsApi } from '../api/studySessions';
@@ -17,11 +17,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showSessionForm, setShowSessionForm] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [overviewData, sessionsData, revisionsData, cycleData] = await Promise.all([
         statisticsApi.getOverview('7'),
@@ -42,7 +38,11 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const formatTime = (minutes) => {
     const hours = Math.floor(minutes / 60);

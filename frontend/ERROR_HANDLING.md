@@ -178,3 +178,4 @@ Com o Sentry configurado, você terá acesso a:
 - **Produção**: Erros são enviados para Sentry (se configurado) e UI amigável é exibida ao usuário
 
 
+

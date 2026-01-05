@@ -1,33 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { studyCyclesApi } from '../api/studyCycles';
-import { useSubjects } from '../hooks/useSubjects';
-import { Skeleton, SkeletonList } from '../components/Skeleton';
+import { subjectsApi } from '../api/subjects';
+import Loading from '../components/Loading';
 
 export default function StudyCycle() {
   const [cycles, setCycles] = useState([]);
   const [activeCycle, setActiveCycle] = useState(null);
+  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', items: [] });
 
-  // Hook de cache para matérias
-  const { data: subjects = [] } = useSubjects();
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const cyclesData = await studyCyclesApi.getAll();
+      const [cyclesData, subjectsData] = await Promise.all([
+        studyCyclesApi.getAll(),
+        subjectsApi.getAll(),
+      ]);
       setCycles(cyclesData);
       setActiveCycle(cyclesData.find(c => c.active) || null);
+      setSubjects(subjectsData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleCreateCycle = async () => {
     try {
@@ -60,12 +62,14 @@ export default function StudyCycle() {
     }
   };
 
+  if (loading) return <Loading />;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Ciclo de Estudos</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">Gerencie seus ciclos de estudos personalizados</p>
+          <h1 className="text-3xl font-bold text-gray-900">Ciclo de Estudos</h1>
+          <p className="mt-2 text-gray-600">Gerencie seus ciclos de estudos personalizados</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -75,13 +79,7 @@ export default function StudyCycle() {
         </button>
       </div>
 
-      {loading ? (
-        <div className="card">
-          <Skeleton height="2rem" width="40%" className="mb-4" />
-          <Skeleton height="1rem" className="mb-6" />
-          <SkeletonList items={5} />
-        </div>
-      ) : activeCycle ? (
+      {activeCycle ? (
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <div>
