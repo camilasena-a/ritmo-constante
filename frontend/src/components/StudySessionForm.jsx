@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { studySessionsApi } from '../api/studySessions';
 import { subjectsApi } from '../api/subjects';
+import { useEventEmitter } from '../hooks/useEventEmitter';
 
 export default function StudySessionForm({ onSuccess, onCancel }) {
+  const { emit } = useEventEmitter();
   const [subjects, setSubjects] = useState([]);
   const [formData, setFormData] = useState({
     subjectId: '',
@@ -49,7 +51,11 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
         return;
       }
 
-      await studySessionsApi.create(formData);
+      const session = await studySessionsApi.create(formData);
+      
+      // Emitir evento para sincronizar outros componentes
+      emit('studySession:created', { session, formData });
+      
       if (onSuccess) onSuccess();
     } catch (err) {
       setError(err.response?.data?.error || 'Erro ao registrar sessão');

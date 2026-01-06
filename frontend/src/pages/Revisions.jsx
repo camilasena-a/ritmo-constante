@@ -4,8 +4,10 @@ import Loading from '../components/Loading';
 import Pagination from '../components/Pagination';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useEventEmitter } from '../hooks/useEventEmitter';
 
 export default function Revisions() {
+  const { emit } = useEventEmitter();
   const [revisions, setRevisions] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,10 @@ export default function Revisions() {
   const handleComplete = async (id) => {
     try {
       await revisionsApi.complete(id);
+      
+      // Emitir evento para sincronizar outros componentes
+      emit('revision:completed', { revisionId: id });
+      
       await loadRevisions();
     } catch (error) {
       console.error('Erro ao completar revisão:', error);

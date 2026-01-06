@@ -4,6 +4,7 @@ import { subjectsApi } from '../api/subjects';
 import Loading from '../components/Loading';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useEventListener } from '../hooks/useEventListener';
 
 export default function WeeklyPlan() {
   const [plan, setPlan] = useState(null);
@@ -14,6 +15,21 @@ export default function WeeklyPlan() {
   useEffect(() => {
     loadData();
   }, [currentWeek]);
+
+  // Escutar eventos para sincronizar dados
+  useEventListener(
+    [
+      'studySession:created',
+      'revision:completed',
+      'subject:created',
+      'subject:updated',
+      'subject:deleted',
+    ],
+    () => {
+      loadData();
+    },
+    [currentWeek]
+  );
 
   const loadData = async () => {
     try {

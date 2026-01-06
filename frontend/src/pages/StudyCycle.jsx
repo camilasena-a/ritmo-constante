@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { studyCyclesApi } from '../api/studyCycles';
 import { subjectsApi } from '../api/subjects';
 import Loading from '../components/Loading';
+import { useEventEmitter } from '../hooks/useEventEmitter';
 
 export default function StudyCycle() {
+  const { emit } = useEventEmitter();
   const [cycles, setCycles] = useState([]);
   const [activeCycle, setActiveCycle] = useState(null);
   const [subjects, setSubjects] = useState([]);
@@ -37,6 +39,11 @@ export default function StudyCycle() {
         ...formData,
         active: true,
       });
+      
+      // Emitir evento para sincronizar outros componentes
+      emit('studyCycle:created', { cycle });
+      emit('studyCycle:updated', { cycle });
+      
       await loadData();
       setShowCreateModal(false);
       setFormData({ name: '', items: [] });
@@ -56,6 +63,11 @@ export default function StudyCycle() {
     if (!activeCycle) return;
     try {
       await studyCyclesApi.advance(activeCycle.id);
+      
+      // Emitir evento para sincronizar outros componentes
+      emit('studyCycle:advanced', { cycleId: activeCycle.id });
+      emit('studyCycle:updated', { cycleId: activeCycle.id });
+      
       await loadData();
     } catch (error) {
       console.error('Erro ao avançar ciclo:', error);

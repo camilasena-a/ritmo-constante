@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { statisticsApi } from '../api/statistics';
 import Loading from '../components/Loading';
+import { useEventListener } from '../hooks/useEventListener';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -37,6 +38,21 @@ export default function Statistics() {
   useEffect(() => {
     loadData();
   }, [period]);
+
+  // Escutar eventos para sincronizar dados
+  useEventListener(
+    [
+      'studySession:created',
+      'revision:completed',
+      'subject:created',
+      'subject:updated',
+      'subject:deleted',
+    ],
+    () => {
+      loadData();
+    },
+    [period]
+  );
 
   const loadData = async () => {
     try {

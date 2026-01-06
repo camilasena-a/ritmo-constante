@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { subjectsApi } from '../api/subjects';
 import Loading from '../components/Loading';
+import { useEventEmitter } from '../hooks/useEventEmitter';
 
 export default function Settings() {
+  const { emit } = useEventEmitter();
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
@@ -25,7 +27,11 @@ export default function Settings() {
 
   const handleCreateSubject = async () => {
     try {
-      await subjectsApi.create(subjectForm);
+      const subject = await subjectsApi.create(subjectForm);
+      
+      // Emitir evento para sincronizar outros componentes
+      emit('subject:created', { subject });
+      
       await loadData();
       setShowSubjectModal(false);
       setSubjectForm({ name: '', color: '#6366f1', description: '' });
@@ -38,6 +44,10 @@ export default function Settings() {
     if (window.confirm('Tem certeza que deseja deletar esta matéria?')) {
       try {
         await subjectsApi.delete(id);
+        
+        // Emitir evento para sincronizar outros componentes
+        emit('subject:deleted', { subjectId: id });
+        
         await loadData();
       } catch (error) {
         console.error('Erro ao deletar matéria:', error);

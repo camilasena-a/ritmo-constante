@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { statisticsApi } from '../api/statistics';
 import Loading from '../components/Loading';
 import { format, startOfYear, endOfYear, eachDayOfInterval, isSameDay } from 'date-fns';
+import { useEventListener } from '../hooks/useEventListener';
 
 export default function Constancy() {
   const [constancyData, setConstancyData] = useState([]);
@@ -11,6 +12,18 @@ export default function Constancy() {
   useEffect(() => {
     loadData();
   }, [year]);
+
+  // Escutar eventos para sincronizar dados
+  useEventListener(
+    [
+      'studySession:created',
+      'revision:completed',
+    ],
+    () => {
+      loadData();
+    },
+    [year]
+  );
 
   const loadData = async () => {
     try {

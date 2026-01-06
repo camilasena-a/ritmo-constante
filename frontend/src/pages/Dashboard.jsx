@@ -8,6 +8,7 @@ import Loading from '../components/Loading';
 import StudySessionForm from '../components/StudySessionForm';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useEventListener } from '../hooks/useEventListener';
 
 export default function Dashboard() {
   const [overview, setOverview] = useState(null);
@@ -20,6 +21,22 @@ export default function Dashboard() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Escutar eventos para sincronizar dados
+  useEventListener(
+    [
+      'studySession:created',
+      'revision:completed',
+      'studyCycle:updated',
+      'studyCycle:advanced',
+      'subject:created',
+      'subject:updated',
+      'subject:deleted',
+    ],
+    () => {
+      loadData();
+    }
+  );
 
   const loadData = async () => {
     try {

@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { examOutlinesApi } from '../api/examOutlines';
 import { subjectsApi } from '../api/subjects';
 import Loading from '../components/Loading';
+import { useEventEmitter } from '../hooks/useEventEmitter';
 
 export default function ExamOutline() {
+  const { emit } = useEventEmitter();
   const [outlines, setOutlines] = useState([]);
   const [selectedOutline, setSelectedOutline] = useState(null);
   const [subjects, setSubjects] = useState([]);
@@ -44,7 +46,11 @@ export default function ExamOutline() {
 
   const handleCreateOutline = async () => {
     try {
-      await examOutlinesApi.create(formData);
+      const outline = await examOutlinesApi.create(formData);
+      
+      // Emitir evento para sincronizar outros componentes
+      emit('examOutline:created', { outline });
+      
       await loadData();
       setShowCreateModal(false);
       setFormData({ subjectId: '', name: '', description: '' });
