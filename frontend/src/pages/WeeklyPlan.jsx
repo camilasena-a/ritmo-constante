@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { weeklyPlansApi } from '../api/weeklyPlans';
 import { subjectsApi } from '../api/subjects';
 import Loading from '../components/Loading';
@@ -11,7 +11,11 @@ export default function WeeklyPlan() {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    loadData();
+  }, [currentWeek]);
+
+  const loadData = async () => {
     try {
       const [planData, subjectsData] = await Promise.all([
         weeklyPlansApi.getByWeek(currentWeek.toISOString()),
@@ -24,11 +28,7 @@ export default function WeeklyPlan() {
     } finally {
       setLoading(false);
     }
-  }, [currentWeek]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  };
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });

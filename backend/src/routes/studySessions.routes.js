@@ -304,7 +304,23 @@ router.get('/', async (req, res, next) => {
       }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
+
+    // Mensagem informativa quando não há dados
+    if (sessions.length === 0) {
+      return res.json({
+        data: [],
+        message: 'Nenhuma sessão de estudo encontrada para os filtros aplicados',
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+      });
+    }
 
     res.json({
       data: sessions,
@@ -662,7 +678,25 @@ router.get('/stats/summary', async (req, res, next) => {
       },
     });
 
-    const totalTime = sessions.reduce((sum, s) => sum + s.duration, 0);
+    // Tratar caso de array vazio de forma segura
+    if (!sessions || sessions.length === 0) {
+      return res.json({
+        totalSessions: 0,
+        totalTime: 0,
+        totalQuestions: 0,
+        totalCorrect: 0,
+        accuracy: 0,
+        byType: {
+          study: 0,
+          review: 0,
+          questions: 0,
+        },
+        message: `Nenhuma sessão de estudo encontrada para o período ${period === 'day' ? 'do dia' : period === 'week' ? 'da semana' : 'do mês'}`,
+      });
+    }
+
+    // Garantir que reduce() funcione corretamente mesmo com arrays vazios
+    const totalTime = sessions.reduce((sum, s) => sum + (s.duration || 0), 0);
     const totalQuestions = sessions.reduce((sum, s) => sum + (s.questions || 0), 0);
     const totalCorrect = sessions.reduce((sum, s) => sum + (s.correctAnswers || 0), 0);
     const accuracy = totalQuestions > 0 ? totalCorrect / totalQuestions : 0;

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { examOutlinesApi } from '../api/examOutlines';
 import { subjectsApi } from '../api/subjects';
 import Loading from '../components/Loading';
@@ -11,7 +11,11 @@ export default function ExamOutline() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({ subjectId: '', name: '', description: '' });
 
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
     try {
       const [outlinesData, subjectsData] = await Promise.all([
         examOutlinesApi.getAll(),
@@ -19,22 +23,15 @@ export default function ExamOutline() {
       ]);
       setOutlines(outlinesData);
       setSubjects(subjectsData);
-      setSelectedOutline(prev => {
-        if (outlinesData.length > 0 && !prev) {
-          return outlinesData[0];
-        }
-        return prev;
-      });
+      if (outlinesData.length > 0 && !selectedOutline) {
+        setSelectedOutline(outlinesData[0]);
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  };
 
   const loadOutlineDetails = async (id) => {
     try {

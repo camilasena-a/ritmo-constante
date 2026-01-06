@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { studyCyclesApi } from '../api/studyCycles';
 import { subjectsApi } from '../api/subjects';
 import Loading from '../components/Loading';
@@ -11,7 +11,11 @@ export default function StudyCycle() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', items: [] });
 
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
     try {
       const [cyclesData, subjectsData] = await Promise.all([
         studyCyclesApi.getAll(),
@@ -25,11 +29,7 @@ export default function StudyCycle() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  };
 
   const handleCreateCycle = async () => {
     try {

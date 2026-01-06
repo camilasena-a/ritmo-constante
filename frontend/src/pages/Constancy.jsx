@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { statisticsApi } from '../api/statistics';
 import Loading from '../components/Loading';
 import { format, startOfYear, endOfYear, eachDayOfInterval, isSameDay } from 'date-fns';
@@ -8,7 +8,11 @@ export default function Constancy() {
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState(new Date().getFullYear());
 
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    loadData();
+  }, [year]);
+
+  const loadData = async () => {
     try {
       const data = await statisticsApi.getConstancy(year);
       setConstancyData(data);
@@ -17,11 +21,7 @@ export default function Constancy() {
     } finally {
       setLoading(false);
     }
-  }, [year]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  };
 
   const getIntensity = (minutes) => {
     if (minutes === 0) return 0;

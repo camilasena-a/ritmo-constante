@@ -1,12 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { statisticsApi } from '../api/statistics';
-import { studySessionsApi } from '../api/studySessions';
-import { Skeleton, SkeletonGrid, SkeletonChart, SkeletonTable, SkeletonList } from '../components/Skeleton';
-import Pagination from '../components/Pagination';
-import ConfirmModal from '../components/ConfirmModal';
-import useToastStore from '../store/toastStore';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import Loading from '../components/Loading';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -37,17 +31,14 @@ export default function Statistics() {
   const [overview, setOverview] = useState(null);
   const [bySubject, setBySubject] = useState([]);
   const [timeline, setTimeline] = useState([]);
-  const [sessions, setSessions] = useState([]);
-  const [sessionsPagination, setSessionsPagination] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sessionsLoading, setSessionsLoading] = useState(false);
   const [period, setPeriod] = useState('30');
-  const [sessionsPage, setSessionsPage] = useState(1);
-  const [sessionsFilter, setSessionsFilter] = useState({ subjectId: '', type: '', startDate: '', endDate: '' });
-  const [showDeleteSessionModal, setShowDeleteSessionModal] = useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState(null);
 
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    loadData();
+  }, [period]);
+
+  const loadData = async () => {
     try {
       const [overviewData, bySubjectData, timelineData] = await Promise.all([
         statisticsApi.getOverview(period),
@@ -62,47 +53,7 @@ export default function Statistics() {
     } finally {
       setLoading(false);
     }
-  }, [period]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const loadSessions = useCallback(async () => {
-    setSessionsLoading(true);
-    try {
-      const days = parseInt(period);
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
-      
-      const params = {
-        page: sessionsPage,
-        limit: 20,
-        startDate: sessionsFilter.startDate || startDate.toISOString(),
-        endDate: sessionsFilter.endDate || new Date().toISOString(),
-        ...(sessionsFilter.subjectId && { subjectId: sessionsFilter.subjectId }),
-        ...(sessionsFilter.type && { type: sessionsFilter.type }),
-      };
-
-      const sessionsData = await studySessionsApi.getAll(params);
-      
-      if (sessionsData.data && sessionsData.pagination) {
-        setSessions(sessionsData.data);
-        setSessionsPagination(sessionsData.pagination);
-      } else {
-        setSessions(sessionsData);
-        setSessionsPagination(null);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar sessões:', error);
-    } finally {
-      setSessionsLoading(false);
-    }
-  }, [sessionsPage, sessionsFilter, period]);
-
-  useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
+  };
 
   const formatTime = (minutes) => {
     const hours = Math.floor(minutes / 60);
@@ -110,51 +61,7 @@ export default function Statistics() {
     return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
   };
 
-  const handleFilterChange = (field, value) => {
-    setSessionsFilter(prev => ({ ...prev, [field]: value }));
-    setSessionsPage(1); // Resetar página ao mudar filtro
-  };
-
-  const handleDeleteSessionClick = (sessionId) => {
-    setSessionToDelete(sessionId);
-    setShowDeleteSessionModal(true);
-  };
-
-  const handleDeleteSession = async () => {
-    if (!sessionToDelete) return;
-    try {
-      await studySessionsApi.delete(sessionToDelete);
-      useToastStore.getState().success('Sessão deletada com sucesso!');
-      await loadSessions();
-      await loadData(); // Recarregar estatísticas
-      setSessionToDelete(null);
-    } catch (error) {
-      console.error('Erro ao deletar sessão:', error);
-      // O toast de erro já será exibido pelo client.js
-    }
-  };
-
-  const handleExportPDF = async () => {
-    try {
-      useToastStore.getState().info('Gerando PDF...');
-      await statisticsApi.exportPDF(period);
-      useToastStore.getState().success('PDF gerado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao exportar PDF:', error);
-      useToastStore.getState().error('Erro ao gerar PDF. Tente novamente.');
-    }
-  };
-
-  const handleExportExcel = async () => {
-    try {
-      useToastStore.getState().info('Gerando Excel...');
-      await statisticsApi.exportExcel(period);
-      useToastStore.getState().success('Excel gerado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao exportar Excel:', error);
-      useToastStore.getState().error('Erro ao gerar Excel. Tente novamente.');
-    }
-  };
+  if (loading) return <Loading />;
 
   const timelineChartData = {
     labels: timeline.map((item) => new Date(item.date).toLocaleDateString('pt-BR')),
@@ -207,66 +114,22 @@ export default function Statistics() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Estatísticas</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">Acompanhe seu desempenho</p>
+          <h1 className="text-3xl font-bold text-gray-900">Estatísticas</h1>
+          <p className="mt-2 text-gray-600">Acompanhe seu desempenho</p>
         </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="input w-48"
-          >
-            <option value="7">Últimos 7 dias</option>
-            <option value="30">Últimos 30 dias</option>
-            <option value="90">Últimos 90 dias</option>
-          </select>
-          <div className="flex gap-2">
-            <button
-              onClick={handleExportPDF}
-              disabled={loading}
-              className="btn btn-secondary flex items-center gap-2"
-              title="Exportar relatório em PDF"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              PDF
-            </button>
-            <button
-              onClick={handleExportExcel}
-              disabled={loading}
-              className="btn btn-secondary flex items-center gap-2"
-              title="Exportar relatório em Excel"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Excel
-            </button>
-          </div>
-        </div>
+        <select
+          value={period}
+          onChange={(e) => setPeriod(e.target.value)}
+          className="input w-48"
+        >
+          <option value="7">Últimos 7 dias</option>
+          <option value="30">Últimos 30 dias</option>
+          <option value="90">Últimos 90 dias</option>
+        </select>
       </div>
 
-      {loading ? (
-        <>
-          {/* Resumo - Skeleton */}
-          <SkeletonGrid items={4} columns={4} />
-
-          {/* Gráficos - Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SkeletonChart />
-            <SkeletonChart />
-            <SkeletonChart />
-            <SkeletonChart />
-          </div>
-
-          {/* Tabela - Skeleton */}
-          <SkeletonTable rows={5} columns={5} />
-        </>
-      ) : (
-        <>
-          {/* Resumo */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Resumo */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="card">
           <p className="text-sm text-gray-600">Tempo total</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">
@@ -386,114 +249,6 @@ export default function Statistics() {
           </table>
         </div>
       </div>
-
-      {/* Lista de sessões com paginação */}
-      <div className="card">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Todas as Sessões</h2>
-        
-        {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <select
-            value={sessionsFilter.type}
-            onChange={(e) => handleFilterChange('type', e.target.value)}
-            className="input"
-          >
-            <option value="">Todos os tipos</option>
-            <option value="study">Estudo</option>
-            <option value="review">Revisão</option>
-            <option value="questions">Questões</option>
-          </select>
-          <input
-            type="date"
-            value={sessionsFilter.startDate}
-            onChange={(e) => handleFilterChange('startDate', e.target.value)}
-            className="input"
-            placeholder="Data inicial"
-          />
-          <input
-            type="date"
-            value={sessionsFilter.endDate}
-            onChange={(e) => handleFilterChange('endDate', e.target.value)}
-            className="input"
-            placeholder="Data final"
-          />
-          <button
-            onClick={() => {
-              setSessionsFilter({ subjectId: '', type: '', startDate: '', endDate: '' });
-              setSessionsPage(1);
-            }}
-            className="btn btn-secondary"
-          >
-            Limpar Filtros
-          </button>
-        </div>
-
-        {sessionsLoading ? (
-          <SkeletonList items={5} />
-        ) : sessions.length > 0 ? (
-          <>
-            <div className="space-y-3">
-              {sessions.map((session) => (
-                <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="flex items-center space-x-3 flex-1">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: session.subject?.color || '#6366f1' }}
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{session.subject?.name}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {format(new Date(session.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} • {formatTime(session.duration)}
-                      </p>
-                      {session.questions > 0 && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                          {session.questions} questões • {session.correctAnswers} acertos ({((session.correctAnswers / session.questions) * 100).toFixed(1)}%)
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full">
-                      {session.type === 'study' ? 'Estudo' : session.type === 'review' ? 'Revisão' : 'Questões'}
-                    </span>
-                    <button
-                      onClick={() => handleDeleteSessionClick(session.id)}
-                      className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                      title="Deletar sessão"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {sessionsPagination && (
-              <Pagination pagination={sessionsPagination} onPageChange={setSessionsPage} className="mt-4" />
-            )}
-          </>
-        ) : (
-          <p className="text-gray-500 dark:text-gray-400 text-center py-8">Nenhuma sessão encontrada</p>
-        )}
-      </div>
-        </>
-      )}
-
-      {/* Modal de confirmação para deletar sessão */}
-      <ConfirmModal
-        isOpen={showDeleteSessionModal}
-        onClose={() => {
-          setShowDeleteSessionModal(false);
-          setSessionToDelete(null);
-        }}
-        onConfirm={handleDeleteSession}
-        title="Deletar Sessão"
-        message="Tem certeza que deseja deletar esta sessão de estudo? Esta ação não pode ser desfeita e afetará suas estatísticas."
-        confirmText="Deletar"
-        cancelText="Cancelar"
-        type="danger"
-      />
     </div>
   );
 }

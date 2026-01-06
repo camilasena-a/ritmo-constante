@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { subjectsApi } from '../api/subjects';
 import Loading from '../components/Loading';
 
@@ -8,7 +8,11 @@ export default function Settings() {
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [subjectForm, setSubjectForm] = useState({ name: '', color: '#6366f1', description: '' });
 
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
     try {
       const subjectsData = await subjectsApi.getAll();
       setSubjects(subjectsData);
@@ -17,11 +21,7 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  };
 
   const handleCreateSubject = async () => {
     try {

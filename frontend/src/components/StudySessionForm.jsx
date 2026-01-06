@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { studySessionsApi } from '../api/studySessions';
 import { subjectsApi } from '../api/subjects';
 
@@ -15,21 +15,21 @@ export default function StudySessionForm({ onSuccess, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const loadSubjects = useCallback(async () => {
+  useEffect(() => {
+    loadSubjects();
+  }, []);
+
+  const loadSubjects = async () => {
     try {
       const data = await subjectsApi.getAll();
       setSubjects(data);
       if (data.length > 0) {
-        setFormData(prev => ({ ...prev, subjectId: data[0].id }));
+        setFormData({ ...formData, subjectId: data[0].id });
       }
     } catch (error) {
       console.error('Erro ao carregar matérias:', error);
     }
-  }, []);
-
-  useEffect(() => {
-    loadSubjects();
-  }, [loadSubjects]);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();

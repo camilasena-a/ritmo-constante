@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { statisticsApi } from '../api/statistics';
 import { studySessionsApi } from '../api/studySessions';
 import { revisionsApi } from '../api/revisions';
 import { studyCyclesApi } from '../api/studyCycles';
-import { Skeleton, SkeletonGrid, SkeletonList } from '../components/Skeleton';
+import Loading from '../components/Loading';
 import StudySessionForm from '../components/StudySessionForm';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -17,38 +17,37 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showSessionForm, setShowSessionForm] = useState(false);
 
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
     try {
       const [overviewData, sessionsData, revisionsData, cycleData] = await Promise.all([
         statisticsApi.getOverview('7'),
-        studySessionsApi.getAll({ startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), limit: 5 }),
-        revisionsApi.getPending({ limit: 5 }),
+        studySessionsApi.getAll({ startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() }),
+        revisionsApi.getPending(),
         studyCyclesApi.getActive().catch(() => null),
       ]);
 
       setOverview(overviewData);
-      // Compatibilidade com resposta paginada ou não paginada
-      const sessionsList = sessionsData.data || sessionsData;
-      const revisionsList = revisionsData.data || revisionsData;
-      setRecentSessions(Array.isArray(sessionsList) ? sessionsList.slice(0, 5) : []);
-      setPendingRevisions(Array.isArray(revisionsList) ? revisionsList.slice(0, 5) : []);
+      setRecentSessions(sessionsData.slice(0, 5));
+      setPendingRevisions(revisionsData.slice(0, 5));
       setActiveCycle(cycleData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  };
 
   const formatTime = (minutes) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
   };
+
+  if (loading) return <Loading />;
 
   const handleSessionSuccess = () => {
     setShowSessionForm(false);
@@ -70,34 +69,8 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {loading ? (
-        <>
-          {/* Cards de resumo - Skeleton */}
-          <SkeletonGrid items={4} columns={4} />
-          
-          {/* Grid de conteúdo - Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="card">
-              <Skeleton height="1.5rem" width="40%" className="mb-4" />
-              <Skeleton height="1rem" className="mb-2" />
-              <Skeleton height="1rem" width="60%" />
-            </div>
-            <div className="card">
-              <Skeleton height="1.5rem" width="50%" className="mb-4" />
-              <SkeletonList items={3} />
-            </div>
-          </div>
-
-          {/* Sessões recentes - Skeleton */}
-          <div className="card">
-            <Skeleton height="1.5rem" width="40%" className="mb-4" />
-            <SkeletonList items={5} />
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Cards de resumo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Cards de resumo */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
@@ -236,8 +209,6 @@ export default function Dashboard() {
           <p className="text-gray-500 dark:text-gray-400">Nenhuma sessão registrada ainda</p>
         )}
       </div>
-        </>
-      )}
 
       {/* Modal de registro de sessão */}
       {showSessionForm && (
