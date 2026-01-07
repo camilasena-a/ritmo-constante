@@ -78,14 +78,14 @@ export default function StudyCycle() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Ciclo de Estudos</h1>
-          <p className="mt-2 text-gray-600">Gerencie seus ciclos de estudos personalizados</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Ciclo de Estudos</h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">Gerencie seus ciclos de estudos personalizados</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="btn btn-primary"
+          className="btn btn-primary w-full sm:w-auto"
         >
           + Novo Ciclo
         </button>

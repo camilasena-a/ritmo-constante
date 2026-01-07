@@ -68,27 +68,27 @@ export default function Revisions() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Revisões</h1>
-          <p className="mt-2 text-gray-600">Gerencie suas revisões programadas</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Revisões</h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">Gerencie suas revisões programadas</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setFilter('pending')}
-            className={`btn ${filter === 'pending' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn text-xs sm:text-sm ${filter === 'pending' ? 'btn-primary' : 'btn-secondary'}`}
           >
             Pendentes
           </button>
           <button
             onClick={() => setFilter('all')}
-            className={`btn ${filter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn text-xs sm:text-sm ${filter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
           >
             Todas
           </button>
           <button
             onClick={() => setFilter('completed')}
-            className={`btn ${filter === 'completed' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn text-xs sm:text-sm ${filter === 'completed' ? 'btn-primary' : 'btn-secondary'}`}
           >
             Concluídas
           </button>

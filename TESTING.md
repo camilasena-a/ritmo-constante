@@ -227,3 +227,4 @@ Certifique-se de que o Jest está configurado corretamente para ES modules no `j
 
 
 
+

@@ -66,29 +66,29 @@ export default function WeeklyPlan() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quadro Semanal</h1>
-          <p className="mt-2 text-gray-600">Planejamento semanal de estudos</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Quadro Semanal</h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">Planejamento semanal de estudos</p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}
-            className="btn btn-secondary"
+            className="btn btn-secondary text-xs sm:text-sm"
           >
-            ← Semana anterior
+            ← Anterior
           </button>
           <button
             onClick={() => setCurrentWeek(new Date())}
-            className="btn btn-secondary"
+            className="btn btn-secondary text-xs sm:text-sm"
           >
             Hoje
           </button>
           <button
             onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}
-            className="btn btn-secondary"
+            className="btn btn-secondary text-xs sm:text-sm"
           >
-            Próxima semana →
+            Próxima →
           </button>
         </div>
       </div>

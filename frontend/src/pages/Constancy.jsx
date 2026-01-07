@@ -84,15 +84,15 @@ export default function Constancy() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Constância</h1>
-          <p className="mt-2 text-gray-600">Acompanhe sua frequência de estudos</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Constância</h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">Acompanhe sua frequência de estudos</p>
         </div>
         <select
           value={year}
           onChange={(e) => setYear(parseInt(e.target.value))}
-          className="input w-32"
+          className="input w-full sm:w-32"
         >
           {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
             <option key={y} value={y}>

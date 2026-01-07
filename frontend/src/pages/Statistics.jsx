@@ -128,15 +128,15 @@ export default function Statistics() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Estatísticas</h1>
-          <p className="mt-2 text-gray-600">Acompanhe seu desempenho</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Estatísticas</h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">Acompanhe seu desempenho</p>
         </div>
         <select
           value={period}
           onChange={(e) => setPeriod(e.target.value)}
-          className="input w-48"
+          className="input w-full sm:w-48"
         >
           <option value="7">Últimos 7 dias</option>
           <option value="30">Últimos 30 dias</option>

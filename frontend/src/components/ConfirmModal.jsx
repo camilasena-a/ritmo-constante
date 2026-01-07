@@ -49,16 +49,16 @@ export default function ConfirmModal({
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               {message}
             </p>
-            <div className="flex justify-end space-x-3">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 sm:space-x-0">
               <button
                 onClick={onClose}
-                className="btn btn-secondary"
+                className="btn btn-secondary w-full sm:w-auto"
               >
                 {cancelText}
               </button>
               <button
                 onClick={handleConfirm}
-                className={`btn ${
+                className={`btn w-full sm:w-auto ${
                   type === 'danger' 
                     ? 'bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700' 
                     : 'btn-primary'
@@ -73,6 +73,7 @@ export default function ConfirmModal({
     </div>
   );
 }
+
 
 
 
