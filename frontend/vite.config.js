@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { imagetools } from 'vite-imagetools';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), imagetools()],
   server: {
     port: 5173,
     host: '0.0.0.0', // Permite acesso de qualquer interface
@@ -36,6 +37,10 @@ export default defineConfig({
     // Otimizações de build
     chunkSizeWarningLimit: 1000, // Avisar se chunks forem maiores que 1MB
     sourcemap: false, // Desabilitar sourcemaps em produção para reduzir tamanho
+    // Otimização de assets
+    assetsInlineLimit: 4096, // Inline assets menores que 4KB
   },
+  // Otimização de imagens
+  assetsInclude: ['**/*.jpg', '**/*.jpeg', '**/*.png', '**/*.gif', '**/*.svg', '**/*.webp', '**/*.avif'],
 });
 

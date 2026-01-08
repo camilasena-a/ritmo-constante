@@ -253,6 +253,7 @@ O banco de dados inclui os seguintes modelos:
 - Zustand
 - Axios
 - date-fns
+- vite-imagetools (otimização de imagens)
 
 ## 📝 Decisões Arquiteturais
 
@@ -263,6 +264,7 @@ O banco de dados inclui os seguintes modelos:
 5. **TailwindCSS** - Estilização rápida e consistente
 6. **Chart.js** - Gráficos interativos e responsivos
 7. **Validação com Zod** - Type-safe validation no backend
+8. **Otimização de imagens** - Lazy loading e compressão automática com vite-imagetools
 
 ## 🔒 Segurança
 
@@ -271,6 +273,32 @@ O banco de dados inclui os seguintes modelos:
 - Middleware de autenticação em rotas protegidas
 - Validação de dados com Zod
 - CORS configurado
+
+## 🖼️ Otimização de Imagens
+
+O projeto implementa otimizações avançadas de imagens:
+
+- ✅ **Compressão automática** - Imagens são comprimidas durante o build
+- ✅ **Lazy loading nativo** - Carregamento sob demanda com Intersection Observer
+- ✅ **Formatos modernos** - Suporte a WebP e AVIF com fallback automático
+- ✅ **Componente LazyImage** - Componente React reutilizável para imagens otimizadas
+- ✅ **Placeholders** - Suporte a imagens placeholder durante o carregamento
+
+### Como Usar
+
+```jsx
+import LazyImage from './components/LazyImage';
+
+<LazyImage
+  src="/assets/images/example.jpg"
+  webpSrc="/assets/images/example.webp"
+  avifSrc="/assets/images/example.avif"
+  alt="Descrição da imagem"
+  className="w-full rounded-lg"
+/>
+```
+
+Veja mais exemplos em `frontend/src/components/LazyImage.example.jsx` e documentação completa em `frontend/public/assets/README.md`.
 
 ## 📈 Próximos Passos
 
