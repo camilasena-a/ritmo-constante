@@ -1,14 +1,18 @@
+import { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import StudyCycle from './pages/StudyCycle';
-import Revisions from './pages/Revisions';
-import WeeklyPlan from './pages/WeeklyPlan';
-import Statistics from './pages/Statistics';
-import Constancy from './pages/Constancy';
-import ExamOutline from './pages/ExamOutline';
-import Settings from './pages/Settings';
+import LazyRoute from './components/LazyRoute';
+
+// Lazy loading de todas as páginas para reduzir o bundle inicial
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const StudyCycle = lazy(() => import('./pages/StudyCycle'));
+const Revisions = lazy(() => import('./pages/Revisions'));
+const WeeklyPlan = lazy(() => import('./pages/WeeklyPlan'));
+const Statistics = lazy(() => import('./pages/Statistics'));
+const Constancy = lazy(() => import('./pages/Constancy'));
+const ExamOutline = lazy(() => import('./pages/ExamOutline'));
+const Settings = lazy(() => import('./pages/Settings'));
 
 function App() {
   return (
@@ -19,65 +23,65 @@ function App() {
           <Route 
             path="dashboard" 
             element={
-              <ErrorBoundary name="Dashboard">
+              <LazyRoute name="Dashboard">
                 <Dashboard />
-              </ErrorBoundary>
+              </LazyRoute>
             } 
           />
           <Route 
             path="study-cycle" 
             element={
-              <ErrorBoundary name="StudyCycle">
+              <LazyRoute name="StudyCycle">
                 <StudyCycle />
-              </ErrorBoundary>
+              </LazyRoute>
             } 
           />
           <Route 
             path="revisions" 
             element={
-              <ErrorBoundary name="Revisions">
+              <LazyRoute name="Revisions">
                 <Revisions />
-              </ErrorBoundary>
+              </LazyRoute>
             } 
           />
           <Route 
             path="weekly-plan" 
             element={
-              <ErrorBoundary name="WeeklyPlan">
+              <LazyRoute name="WeeklyPlan">
                 <WeeklyPlan />
-              </ErrorBoundary>
+              </LazyRoute>
             } 
           />
           <Route 
             path="statistics" 
             element={
-              <ErrorBoundary name="Statistics">
+              <LazyRoute name="Statistics">
                 <Statistics />
-              </ErrorBoundary>
+              </LazyRoute>
             } 
           />
           <Route 
             path="constancy" 
             element={
-              <ErrorBoundary name="Constancy">
+              <LazyRoute name="Constancy">
                 <Constancy />
-              </ErrorBoundary>
+              </LazyRoute>
             } 
           />
           <Route 
             path="exam-outline" 
             element={
-              <ErrorBoundary name="ExamOutline">
+              <LazyRoute name="ExamOutline">
                 <ExamOutline />
-              </ErrorBoundary>
+              </LazyRoute>
             } 
           />
           <Route 
             path="settings" 
             element={
-              <ErrorBoundary name="Settings">
+              <LazyRoute name="Settings">
                 <Settings />
-              </ErrorBoundary>
+              </LazyRoute>
             } 
           />
         </Route>
