@@ -1,3 +1,6 @@
+import { useEffect } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
+
 export default function ConfirmModal({ 
   isOpen, 
   onClose, 
@@ -8,6 +11,21 @@ export default function ConfirmModal({
   cancelText = 'Cancelar',
   type = 'danger' // 'danger' para ações destrutivas, 'warning' para avisos
 }) {
+  const modalRef = useFocusTrap(isOpen);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleConfirm = () => {
@@ -25,8 +43,16 @@ export default function ConfirmModal({
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50"
       onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      aria-describedby="modal-description"
     >
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+      <div 
+        ref={modalRef}
+        className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-start space-x-4">
           {type === 'danger' && (
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
@@ -43,26 +69,28 @@ export default function ConfirmModal({
             </div>
           )}
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            <h3 id="modal-title" className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               {title}
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p id="modal-description" className="text-gray-600 dark:text-gray-400 mb-6">
               {message}
             </p>
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 sm:space-x-0">
               <button
                 onClick={onClose}
-                className="btn btn-secondary w-full sm:w-auto"
+                className="btn btn-secondary w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                aria-label={cancelText}
               >
                 {cancelText}
               </button>
               <button
                 onClick={handleConfirm}
-                className={`btn w-full sm:w-auto ${
+                className={`btn w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
                   type === 'danger' 
-                    ? 'bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700' 
-                    : 'btn-primary'
+                    ? 'bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700 focus:ring-red-500' 
+                    : 'btn-primary focus:ring-primary-500'
                 }`}
+                aria-label={confirmText}
               >
                 {confirmText}
               </button>

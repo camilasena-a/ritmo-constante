@@ -3,6 +3,7 @@ import { studyCyclesApi } from '../api/studyCycles';
 import { subjectsApi } from '../api/subjects';
 import Loading from '../components/Loading';
 import { useEventEmitter } from '../hooks/useEventEmitter';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 export default function StudyCycle() {
   const { emit } = useEventEmitter();
@@ -12,6 +13,20 @@ export default function StudyCycle() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', items: [] });
+  const modalRef = useFocusTrap(showCreateModal);
+
+  useEffect(() => {
+    if (!showCreateModal) return;
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setShowCreateModal(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [showCreateModal]);
 
   useEffect(() => {
     loadData();
@@ -85,7 +100,8 @@ export default function StudyCycle() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="btn btn-primary w-full sm:w-auto"
+          className="btn btn-primary w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          aria-label="Criar novo ciclo de estudos"
         >
           + Novo Ciclo
         </button>
@@ -98,7 +114,11 @@ export default function StudyCycle() {
               <h2 className="text-2xl font-bold text-gray-900">{activeCycle.name}</h2>
               <p className="text-gray-600 mt-1">Ciclo ativo</p>
             </div>
-            <button onClick={handleAdvance} className="btn btn-primary">
+            <button 
+              onClick={handleAdvance} 
+              className="btn btn-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              aria-label="Avançar para a próxima matéria do ciclo"
+            >
               Avançar para próximo
             </button>
           </div>
@@ -149,9 +169,23 @@ export default function StudyCycle() {
 
       {/* Modal de criação */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">Criar Novo Ciclo</h2>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-cycle-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowCreateModal(false);
+            }
+          }}
+        >
+          <div 
+            ref={modalRef}
+            className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="create-cycle-title" className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Criar Novo Ciclo</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -170,7 +204,11 @@ export default function StudyCycle() {
                   <label className="block text-sm font-medium text-gray-700">
                     Matérias
                   </label>
-                  <button onClick={handleAddItem} className="text-sm text-primary-600">
+                  <button 
+                    onClick={handleAddItem} 
+                    className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded"
+                    aria-label="Adicionar nova matéria ao ciclo"
+                  >
                     + Adicionar
                   </button>
                 </div>
@@ -213,11 +251,16 @@ export default function StudyCycle() {
                   setShowCreateModal(false);
                   setFormData({ name: '', items: [] });
                 }}
-                className="btn btn-secondary"
+                className="btn btn-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                aria-label="Cancelar criação de ciclo"
               >
                 Cancelar
               </button>
-              <button onClick={handleCreateCycle} className="btn btn-primary">
+              <button 
+                onClick={handleCreateCycle} 
+                className="btn btn-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                aria-label="Criar novo ciclo de estudos"
+              >
                 Criar
               </button>
             </div>

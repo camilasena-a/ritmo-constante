@@ -56,6 +56,10 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Skip link para navegação por teclado */}
+      <a href="#main-content" className="skip-link">
+        Pular para conteúdo principal
+      </a>
       {/* Mobile header com hamburger */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between px-4 py-3">
@@ -179,7 +183,7 @@ export default function Layout() {
 
       {/* Main content */}
       <div className="lg:pl-64 pt-16 lg:pt-0">
-        <main className="py-4 px-4 lg:py-8 lg:px-8">
+        <main id="main-content" className="py-4 px-4 lg:py-8 lg:px-8" role="main">
           <Outlet />
         </main>
       </div>

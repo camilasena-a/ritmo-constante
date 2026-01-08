@@ -76,19 +76,25 @@ export default function Revisions() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setFilter('pending')}
-            className={`btn text-xs sm:text-sm ${filter === 'pending' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${filter === 'pending' ? 'btn-primary' : 'btn-secondary'}`}
+            aria-label="Filtrar revisões pendentes"
+            aria-pressed={filter === 'pending'}
           >
             Pendentes
           </button>
           <button
             onClick={() => setFilter('all')}
-            className={`btn text-xs sm:text-sm ${filter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${filter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+            aria-label="Mostrar todas as revisões"
+            aria-pressed={filter === 'all'}
           >
             Todas
           </button>
           <button
             onClick={() => setFilter('completed')}
-            className={`btn text-xs sm:text-sm ${filter === 'completed' ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${filter === 'completed' ? 'btn-primary' : 'btn-secondary'}`}
+            aria-label="Filtrar revisões concluídas"
+            aria-pressed={filter === 'completed'}
           >
             Concluídas
           </button>
@@ -125,7 +131,8 @@ export default function Revisions() {
                     ) : (
                       <button
                         onClick={() => handleComplete(revision.id)}
-                        className="btn btn-primary text-sm"
+                        className="btn btn-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        aria-label={`Marcar revisão de ${revision.subject?.name} como concluída`}
                       >
                         Marcar como concluída
                       </button>

@@ -9,6 +9,7 @@ import StudySessionForm from '../components/StudySessionForm';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEventListener } from '../hooks/useEventListener';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 export default function Dashboard() {
   const [overview, setOverview] = useState(null);
@@ -17,10 +18,24 @@ export default function Dashboard() {
   const [activeCycle, setActiveCycle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSessionForm, setShowSessionForm] = useState(false);
+  const modalRef = useFocusTrap(showSessionForm);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!showSessionForm) return;
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setShowSessionForm(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [showSessionForm]);
 
   // Escutar eventos para sincronizar dados
   useEventListener(
@@ -80,59 +95,60 @@ export default function Dashboard() {
         </div>
         <button
           onClick={() => setShowSessionForm(true)}
-          className="btn btn-primary w-full sm:w-auto"
+          className="btn btn-primary w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          aria-label="Abrir formulário para registrar nova sessão de estudo"
         >
           + Registrar Sessão
         </button>
       </div>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" role="region" aria-label="Estatísticas resumidas">
+        <div className="card" role="article" aria-label="Tempo estudado">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Tempo estudado (7 dias)</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Tempo estudado (7 dias)</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                 {overview ? formatTime(overview.totalTime) : '0min'}
               </p>
             </div>
-            <div className="text-3xl">⏱️</div>
+            <div className="text-3xl" aria-hidden="true">⏱️</div>
           </div>
         </div>
 
-        <div className="card">
+        <div className="card" role="article" aria-label="Questões resolvidas">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Questões resolvidas</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Questões resolvidas</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                 {overview?.totalQuestions || 0}
               </p>
             </div>
-            <div className="text-3xl">📝</div>
+            <div className="text-3xl" aria-hidden="true">📝</div>
           </div>
         </div>
 
-        <div className="card">
+        <div className="card" role="article" aria-label="Taxa de acerto">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Taxa de acerto</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Taxa de acerto</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                 {overview?.accuracy ? `${(overview.accuracy * 100).toFixed(1)}%` : '0%'}
               </p>
             </div>
-            <div className="text-3xl">🎯</div>
+            <div className="text-3xl" aria-hidden="true">🎯</div>
           </div>
         </div>
 
-        <div className="card">
+        <div className="card" role="article" aria-label="Sequência de dias estudados">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Sequência (Streak)</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Sequência (Streak)</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                 {overview?.streak || 0} dias
               </p>
             </div>
-            <div className="text-3xl">🔥</div>
+            <div className="text-3xl" aria-hidden="true">🔥</div>
           </div>
         </div>
       </div>
@@ -229,9 +245,23 @@ export default function Dashboard() {
 
       {/* Modal de registro de sessão */}
       {showSessionForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Registrar Sessão de Estudo</h2>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="session-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowSessionForm(false);
+            }
+          }}
+        >
+          <div 
+            ref={modalRef}
+            className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="session-modal-title" className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Registrar Sessão de Estudo</h2>
             <StudySessionForm
               onSuccess={handleSessionSuccess}
               onCancel={() => setShowSessionForm(false)}

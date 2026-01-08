@@ -52,7 +52,11 @@ export default function Register() {
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
+            <div 
+              className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg"
+              role="alert"
+              aria-live="assertive"
+            >
               {error}
             </div>
           )}
@@ -66,9 +70,11 @@ export default function Register() {
                 name="name"
                 type="text"
                 required
+                autoComplete="name"
                 className="input mt-1"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                aria-required="true"
               />
             </div>
             <div>
@@ -80,9 +86,11 @@ export default function Register() {
                 name="email"
                 type="email"
                 required
+                autoComplete="email"
                 className="input mt-1"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                aria-required="true"
               />
             </div>
             <div>
@@ -95,10 +103,16 @@ export default function Register() {
                 type="password"
                 required
                 minLength={6}
+                autoComplete="new-password"
                 className="input mt-1"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                aria-required="true"
+                aria-describedby="password-help"
               />
+              <p id="password-help" className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                Mínimo de 6 caracteres
+              </p>
             </div>
           </div>
 
@@ -106,7 +120,9 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary w-full"
+              className="btn btn-primary w-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              aria-label={loading ? 'Criando conta' : 'Criar nova conta'}
+              aria-busy={loading}
             >
               {loading ? 'Criando conta...' : 'Criar conta'}
             </button>

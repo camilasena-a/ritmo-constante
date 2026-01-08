@@ -189,3 +189,4 @@ useEventListener(
 4. Verifique se o componente ainda está montado quando o evento é emitido
 
 
+

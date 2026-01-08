@@ -52,7 +52,11 @@ export default function Login() {
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
+            <div 
+              className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg"
+              role="alert"
+              aria-live="assertive"
+            >
               {error}
             </div>
           )}
@@ -66,9 +70,11 @@ export default function Login() {
                 name="email"
                 type="email"
                 required
+                autoComplete="email"
                 className="input mt-1"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                aria-required="true"
               />
             </div>
             <div>
@@ -88,9 +94,11 @@ export default function Login() {
                 name="password"
                 type="password"
                 required
+                autoComplete="current-password"
                 className="input mt-1"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                aria-required="true"
               />
             </div>
           </div>
@@ -99,7 +107,9 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary w-full"
+              className="btn btn-primary w-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              aria-label={loading ? 'Entrando na conta' : 'Fazer login'}
+              aria-busy={loading}
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
