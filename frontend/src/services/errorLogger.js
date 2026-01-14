@@ -211,9 +211,19 @@ class ErrorLogger {
    */
   async sendToCustomEndpoint(errorInfo) {
     try {
+      // Determinar a URL base da API (mesma lógica do client.js)
+      const getApiBaseURL = () => {
+        if (import.meta.env.DEV) {
+          return '/api';
+        }
+        const apiUrl = import.meta.env.VITE_API_URL;
+        return apiUrl || '/api';
+      };
+      
       // Você pode implementar um endpoint próprio aqui
       // Por exemplo, enviar para seu backend
-      const response = await fetch('/api/logs/error', {
+      const apiBaseURL = getApiBaseURL();
+      const response = await fetch(`${apiBaseURL}/logs/error`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

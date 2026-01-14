@@ -1,5 +1,6 @@
 import React from 'react';
 import errorLogger from '../services/errorLogger';
+import { redirectTo } from '../utils/paths';
 
 /**
  * Error Boundary para capturar erros de renderização do React
@@ -130,7 +131,7 @@ class ErrorBoundary extends React.Component {
 
             {this.props.showHomeButton && (
               <button
-                onClick={() => (window.location.href = '/')}
+                onClick={() => redirectTo('/')}
                 className="mt-3 w-full px-4 py-2 text-blue-600 hover:text-blue-700 transition-colors font-medium"
               >
                 Voltar para o início

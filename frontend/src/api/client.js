@@ -2,9 +2,30 @@ import axios from 'axios';
 import useLoadingStore from '../store/loadingStore';
 import useToastStore from '../store/toastStore';
 import errorLogger from '../services/errorLogger';
+import { redirectTo } from '../utils/paths';
+
+// Determinar a URL base da API
+// Em desenvolvimento: usa proxy do Vite (/api)
+// Em produção: usa variável de ambiente ou fallback para URL relativa
+const getApiBaseURL = () => {
+  // Se estiver em desenvolvimento (Vite)
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+  
+  // Em produção, usar variável de ambiente ou URL relativa
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (apiUrl) {
+    return apiUrl;
+  }
+  
+  // Fallback: tentar usar URL relativa (assumindo que o backend está no mesmo domínio)
+  // Se o backend estiver em outro domínio, configure VITE_API_URL
+  return '/api';
+};
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getApiBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -54,8 +75,8 @@ const refreshTokenIfNeeded = async () => {
     if (!refreshToken) return null;
     
     // Fazer requisição diretamente sem usar authApi para evitar dependência circular
-    const response = await axios.post('/api/auth/refresh', { refreshToken }, {
-      baseURL: '',
+    const apiBaseURL = getApiBaseURL();
+    const response = await axios.post(`${apiBaseURL}/auth/refresh`, { refreshToken }, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -71,7 +92,7 @@ const refreshTokenIfNeeded = async () => {
   } catch (error) {
     // Se o refresh falhar, fazer logout
     localStorage.removeItem('auth-storage');
-    window.location.href = '/login';
+    redirectTo('/login');
     throw error;
   }
 };
@@ -184,8 +205,8 @@ api.interceptors.response.use(
 
           if (refreshToken) {
             // Fazer requisição diretamente sem usar authApi para evitar dependência circular
-            const response = await axios.post('/api/auth/refresh', { refreshToken }, {
-              baseURL: '',
+            const apiBaseURL = getApiBaseURL();
+            const response = await axios.post(`${apiBaseURL}/auth/refresh`, { refreshToken }, {
               headers: {
                 'Content-Type': 'application/json',
               },
@@ -209,7 +230,7 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         // Se o refresh falhar, fazer logout
         localStorage.removeItem('auth-storage');
-        window.location.href = '/login';
+        redirectTo('/login');
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

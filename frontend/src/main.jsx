@@ -5,9 +5,12 @@ import App from './App';
 import './index.css';
 import * as serviceWorkerRegistration from './utils/serviceWorkerRegistration';
 
+// Obter o base path do Vite (será '/' em dev ou '/nome-repositorio/' no GitHub Pages)
+const basePath = import.meta.env.BASE_URL || '/';
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={basePath}>
       <App />
     </BrowserRouter>
   </React.StrictMode>
