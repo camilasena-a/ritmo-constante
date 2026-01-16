@@ -1,33 +1,38 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { copyFileSync } from 'fs';
-import { resolve } from 'path';
+import { writeFileSync, copyFileSync } from 'fs';
+import { join } from 'path';
 
 // Base path para GitHub Pages (será substituído pelo nome do repositório)
 // Em desenvolvimento, usa '/' (raiz)
 // Em produção no GitHub Pages, usa '/nome-do-repositorio/'
 const base = process.env.VITE_BASE_PATH || '/';
 
-// Plugin para copiar 404.html para a pasta dist após o build
-const copy404Plugin = () => {
+// Plugin para criar arquivo .nojekyll e copiar 404.html no build (necessário para GitHub Pages)
+const githubPagesPlugin = () => {
   return {
-    name: 'copy-404',
+    name: 'github-pages',
     closeBundle() {
-      const root = process.cwd();
-      const src = resolve(root, '404.html');
-      const dest = resolve(root, 'dist', '404.html');
+      const distPath = join(process.cwd(), 'dist');
+      const rootPath = process.cwd();
+      
+      // Criar arquivo .nojekyll para desabilitar Jekyll
+      writeFileSync(join(distPath, '.nojekyll'), '');
+      
+      // Copiar 404.html para dist (necessário para GitHub Pages SPA routing)
+      const source404 = join(rootPath, '404.html');
+      const dest404 = join(distPath, '404.html');
       try {
-        copyFileSync(src, dest);
-        console.log('✅ 404.html copiado para dist/');
-      } catch (error) {
-        console.warn('⚠️ Não foi possível copiar 404.html:', error.message);
+        copyFileSync(source404, dest404);
+      } catch (err) {
+        console.warn('Arquivo 404.html não encontrado, pulando cópia');
       }
     },
   };
 };
 
 export default defineConfig({
-  plugins: [react(), copy404Plugin()],
+  plugins: [react(), githubPagesPlugin()],
   base,
   server: {
     port: 5173,

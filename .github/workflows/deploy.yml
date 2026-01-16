@@ -36,14 +36,11 @@ jobs:
           npm ci
 
       - name: Build
-        env:
-          # Substitua 'ritmo-constante' pelo nome do seu repositório
-          VITE_BASE_PATH: /${{ github.event.repository.name }}/
-          # Configure a URL da API do backend (substitua pela URL real do seu backend)
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://seu-backend.herokuapp.com/api' }}
         run: |
           cd frontend
           npm run build
+        env:
+          VITE_BASE_PATH: /ritmo-constante/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

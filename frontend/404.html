@@ -7,19 +7,19 @@
     <script>
       // GitHub Pages redireciona para 404.html quando uma rota não existe
       // Este script redireciona para index.html para que o React Router possa lidar com a rota
-      (function() {
-        const path = window.location.pathname;
-        // Detectar o base path (ex: /ritmo-constante/ ou /)
-        // Remove o nome do arquivo atual (404.html) e mantém o caminho
-        const segments = path.split('/').filter(Boolean);
-        // Remove o último segmento se for um arquivo (404.html)
-        if (segments.length > 0 && segments[segments.length - 1].includes('.')) {
-          segments.pop();
-        }
-        const basePath = segments.length > 0 ? '/' + segments.join('/') + '/' : '/';
-        const redirectUrl = basePath + 'index.html' + window.location.search + window.location.hash;
-        window.location.replace(redirectUrl);
-      })();
+      const path = window.location.pathname;
+      
+      // Detecta o base path (ex: /ritmo-constante)
+      // Se o path contém /ritmo-constante, usa esse como base
+      const basePath = path.includes('/ritmo-constante') ? '/ritmo-constante' : '';
+      
+      // Remove /404.html do path se estiver presente
+      const cleanPath = path.replace(/\/404\.html$/, '');
+      
+      // Constrói o caminho de redirecionamento
+      const redirectPath = basePath + '/index.html' + cleanPath.replace(basePath, '') + window.location.search + window.location.hash;
+      
+      window.location.replace(redirectPath);
     </script>
   </head>
   <body>
